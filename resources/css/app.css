@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Components */
+@layer components {
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(37,99,235,0.28)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-[0_22px_40px_rgba(37,99,235,0.34)];
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-400 hover:shadow-md;
+    }
+
+    .card {
+        @apply rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_14px_45px_rgba(15,23,42,0.06)];
+    }
+
+    .surface-soft {
+        @apply rounded-[32px] border border-slate-200/70 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)];
+    }
+
+    .section-shell {
+        @apply relative overflow-hidden px-4 py-16 sm:px-6 lg:px-8 lg:py-24;
+    }
+
+    .section-kicker {
+        @apply inline-flex items-center gap-3 text-sm font-bold uppercase tracking-[0.24em] text-primary-600;
+    }
+
+    .section-title {
+        @apply text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl;
+    }
+
+    .section-copy {
+        @apply text-base leading-8 text-slate-600 sm:text-lg;
+    }
+
+    .nav-link {
+        @apply text-sm font-semibold text-slate-700 transition-colors duration-200 hover:text-primary-600;
+    }
+
+    .nav-link-active {
+        @apply text-primary-600;
+    }
+
+    .glass-panel {
+        @apply rounded-[28px] border border-white/40 bg-white/90 shadow-[0_30px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl;
+    }
+
+    .field-shell {
+        @apply flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-500 transition-all duration-300 focus-within:border-primary-300 focus-within:bg-white focus-within:shadow-[0_14px_28px_rgba(37,99,235,0.08)];
+    }
+
+    .icon-box {
+        @apply flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600;
+    }
+
+    .stat-card {
+        @apply flex h-full flex-col items-center justify-center gap-2 px-4 py-8 text-center text-white;
+    }
+}
+
+/* Custom Base Styles */
+@layer base {
+    html {
+        @apply scroll-smooth;
+    }
+
+    body {
+        @apply bg-slate-50 font-sans antialiased text-slate-900;
+        text-rendering: optimizeLegibility;
+    }
+
+    ::selection {
+        @apply bg-primary-600 text-white;
+    }
+}

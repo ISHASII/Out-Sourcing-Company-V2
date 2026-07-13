@@ -298,6 +298,35 @@
                     </div>
                 @endforelse
             </div>
+
+            @if($postings->hasPages())
+                <div class="mt-8 pagination flex items-center justify-end">
+                    {{ $postings->links() }}
+                </div>
+
+                <style>
+                    /* Style active page links correctly to highlight them in blue */
+                    .pagination [aria-current="page"] > span,
+                    .pagination [aria-current="page"] > a,
+                    .pagination [aria-current="page"] > span:hover {
+                        background-color: #003d7c !important;
+                        color: white !important;
+                        border-color: #003d7c !important;
+                        font-weight: 800 !important;
+                        box-shadow: 0 1px 3px 0 rgba(0, 61, 124, 0.2) !important;
+                    }
+                    .pagination nav a, .pagination nav span {
+                        border-radius: 0.75rem !important;
+                        font-size: 11px !important;
+                        font-weight: 700 !important;
+                        transition: all 0.2s ease-in-out !important;
+                    }
+                    .pagination nav a:hover {
+                        background-color: #f8fafc !important;
+                        border-color: #cbd5e1 !important;
+                    }
+                </style>
+            @endif
         </div>
     </div>
 @endsection

@@ -43,8 +43,7 @@ class PelamarLowonganController extends Controller
 
     public function create(JobPosting $jobPosting)
     {
-        $today = Carbon::today();
-        if (!$jobPosting->is_active || ($jobPosting->active_until && $jobPosting->active_until->lt($today))) {
+        if ($jobPosting->isExpired()) {
             return redirect()->route('pelamar.lowongan')->with('error', 'Lowongan ini sudah ditutup atau tidak aktif lagi.');
         }
 
@@ -117,8 +116,7 @@ class PelamarLowonganController extends Controller
 
     public function store(Request $request, JobPosting $jobPosting)
     {
-        $today = Carbon::today();
-        if (!$jobPosting->is_active || ($jobPosting->active_until && $jobPosting->active_until->lt($today))) {
+        if ($jobPosting->isExpired()) {
             return redirect()->route('pelamar.lowongan')->with('error', 'Lowongan ini sudah ditutup atau tidak aktif lagi.');
         }
 
@@ -336,20 +334,49 @@ class PelamarLowonganController extends Controller
             $application->sim_b1_path = $request->file('sim_b1_photo')->store($folder, 'public');
         }
 
-        // Dynamically validate and store custom document uploads
+        // Dynamically validate and store custom uploads based on active custom requirements
         $additionalDocs = $isUpdate ? ($existingApp->additional_documents ?? []) : [];
-        $customDocsConfig = $jobPosting->requirements_config['custom_documents'] ?? [];
-        foreach ($customDocsConfig as $doc) {
-            $key = $doc['key'];
-            $inputName = "custom_doc_{$key}";
-            if ($request->hasFile($inputName)) {
-                $request->validate([
-                    $inputName => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:2048']
-                ], [
-                    "{$inputName}.max" => "Ukuran berkas {$doc['label']} tidak boleh lebih dari 2MB.",
-                    "{$inputName}.mimes" => "Format berkas {$doc['label']} harus berupa PDF, JPG, JPEG, atau PNG."
-                ]);
-                $additionalDocs[$key] = $request->file($inputName)->store($folder, 'public');
+        
+        $predefinedKeys = [
+            'gender', 'age', 'education', 'major', 'experience', 
+            'agd', 'sertifikat_agd_ambulance', 'sertifikat_agd',
+            'sim_c', 'lisensi_sim_c_motor', 'sim_c_aktif',
+            'sim_b1', 'lisensi_sim_b1_mobil_berat',
+            'placement_ready', 'placement_choices',
+            'medical_support', 'medical_terms', 
+            'gardener_tech_understanding', 'gardener_nursery_skill', 'gardener_tools_skill'
+        ];
+
+        $customCriteria = collect($jobPosting->requirements_config['criteria'] ?? [])
+            ->filter(function($c) use ($predefinedKeys) {
+                return ($c['status'] ?? 'nonaktif') !== 'nonaktif' && !in_array($c['key'], $predefinedKeys);
+            });
+
+        foreach ($customCriteria as $c) {
+            $key = $c['key'];
+            $type = $c['type'] ?? 'file';
+            $label = $c['label'] ?? ucwords(str_replace('_', ' ', $key));
+
+            if ($type === 'file') {
+                $inputName = "custom_doc_{$key}";
+                if ($request->hasFile($inputName)) {
+                    $request->validate([
+                        $inputName => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:2048']
+                    ], [
+                        "{$inputName}.max" => "Ukuran berkas {$label} tidak boleh lebih dari 2MB.",
+                        "{$inputName}.mimes" => "Format berkas {$label} harus berupa PDF, JPG, JPEG, atau PNG."
+                    ]);
+                    $additionalDocs[$key] = $request->file($inputName)->store($folder, 'public');
+                }
+            } elseif ($type === 'checkbox') {
+                $inputName = "custom_checkbox_{$key}";
+                $additionalDocs[$key] = $request->boolean($inputName);
+            } elseif ($type === 'text') {
+                $inputName = "custom_text_{$key}";
+                $additionalDocs[$key] = $request->input($inputName);
+            } elseif ($type === 'number') {
+                $inputName = "custom_number_{$key}";
+                $additionalDocs[$key] = $request->input($inputName);
             }
         }
         $additionalDocs['medical_support'] = $request->boolean('medical_support');

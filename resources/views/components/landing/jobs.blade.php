@@ -64,6 +64,7 @@
                                 'posted' => $posting->created_at?->diffForHumans(),
                                 'salary' => $salary,
                                 'apply_url' => $applyUrl,
+                                'active_until' => $posting->active_until ? $posting->active_until->format('d M Y') : null,
                             ];
                         @endphp
                         <x-landing.job-card :job="$job" />

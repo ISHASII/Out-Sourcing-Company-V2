@@ -7,8 +7,6 @@
      
     <!-- Header Summary & Search Filter Grid -->
     <div class="bg-gradient-to-r from-[#002855] to-[#004b93] text-white p-6 md:p-8 rounded-3xl border border-blue-900/10 shadow-lg space-y-6 relative overflow-hidden">
-        <!-- Decorative subtle pattern/glow -->
-        <div class="absolute inset-0 bg-white/5 backdrop-blur-xs"></div>
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 relative z-10">
             <div>
                 <span class="bg-blue-500/25 text-blue-200 text-[10px] font-extrabold px-3 py-1 rounded-lg uppercase tracking-widest border border-blue-400/20">Direktori</span>

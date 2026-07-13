@@ -5,44 +5,79 @@
 @section('dashboard-content')
     @php
         $config = $posting->requirements_config ?? [];
+        $criteriaList = collect($config['criteria'] ?? []);
         
-        $genderStatus = $config['gender']['status'] ?? 'core';
-        $genderVal = $config['gender']['value'] ?? 'both';
-        
-        $ageStatus = $config['age']['status'] ?? 'core';
-        $ageMin = $config['age']['min'] ?? 18;
-        $ageMax = $config['age']['max'] ?? 65;
-        
-        $educationStatus = $config['education']['status'] ?? 'core';
-        $educationVal = $config['education']['value'] ?? 'SMA/SMK';
-        
-        $agdStatus = $config['agd']['status'] ?? 'nonaktif';
-        $simcStatus = $config['sim_c']['status'] ?? 'nonaktif';
-        $simb1Status = $config['sim_b1']['status'] ?? 'nonaktif';
-        
-        $experienceStatus = $config['experience']['status'] ?? 'nonaktif';
-        $experienceVal = $config['experience']['value'] ?? 0;
-        
-        $placementStatus = $config['placement_ready']['status'] ?? 'core';
-        $placementType = $config['placement_ready']['type'] ?? 'anywhere';
+        $getCriterion = function($key) use ($criteriaList) {
+            return $criteriaList->firstWhere('key', $key);
+        };
 
-        // Custom configs for major, placement choices, and custom files
-        $majorStatus = $config['major']['status'] ?? 'nonaktif';
-        $majorVal = $config['major']['value'] ?? '';
+        // 1. Gender
+        $genderItem = $getCriterion('gender');
+        $genderStatus = $genderItem['status'] ?? 'core';
+        $genderVal = $genderItem['value'] ?? 'both';
         
-        $placementChoicesStatus = $config['placement_choices']['status'] ?? 'nonaktif';
-        $placementChoicesVal = $config['placement_choices']['value'] ?? '';
+        // 2. Age
+        $ageItem = $getCriterion('age');
+        $ageStatus = $ageItem['status'] ?? 'core';
+        $ageMin = $ageItem['value']['min'] ?? 18;
+        $ageMax = $ageItem['value']['max'] ?? 65;
+        
+        // 3. Education
+        $educationItem = $getCriterion('education');
+        $educationStatus = $educationItem['status'] ?? 'core';
+        $educationVal = $educationItem['value'] ?? 'SMA/SMK';
+        
+        // 4. AGD (Ambulance)
+        $agdItem = $getCriterion('sertifikat_agd_ambulance') ?? $getCriterion('agd') ?? $getCriterion('sertifikat_agd');
+        $agdStatus = $agdItem['status'] ?? 'nonaktif';
+        
+        // 5. SIM C
+        $simcItem = $getCriterion('sim_c_aktif') ?? $getCriterion('lisensi_sim_c_motor') ?? $getCriterion('sim_c');
+        $simcStatus = $simcItem['status'] ?? 'nonaktif';
+        
+        // 6. SIM B1
+        $simb1Item = $getCriterion('lisensi_sim_b1_mobil_berat') ?? $getCriterion('sim_b1');
+        $simb1Status = $simb1Item['status'] ?? 'nonaktif';
+        
+        // 7. Experience
+        $experienceItem = $getCriterion('experience');
+        $experienceStatus = $experienceItem['status'] ?? 'nonaktif';
+        $experienceVal = $experienceItem['value'] ?? 0;
+        
+        // 8. Placement Ready
+        $placementItem = $getCriterion('placement_ready');
+        $placementStatus = $placementItem['status'] ?? 'core';
+        $placementType = $placementItem['value']['type'] ?? 'anywhere';
+
+        // 9. Major
+        $majorItem = $getCriterion('major');
+        $majorStatus = $majorItem['status'] ?? 'nonaktif';
+        $majorVal = $majorItem['value'] ?? '';
+        
+        // 10. Placement Choices
+        $placementChoicesItem = $getCriterion('placement_choices');
+        $placementChoicesStatus = $placementChoicesItem['status'] ?? 'nonaktif';
+        $placementChoicesVal = $placementChoicesItem['value'] ?? '';
         $placementChoicesArray = !empty($placementChoicesVal) ? array_map('trim', explode(',', $placementChoicesVal)) : [];
         
-        $medicalSupportStatus = $config['medical_support']['status'] ?? 'nonaktif';
-        $medicalTermsStatus = $config['medical_terms']['status'] ?? 'nonaktif';
+        // 11. Runner / Gardener specific
+        $medicalSupportItem = $getCriterion('medical_support');
+        $medicalSupportStatus = $medicalSupportItem['status'] ?? 'nonaktif';
+        
+        $medicalTermsItem = $getCriterion('medical_terms');
+        $medicalTermsStatus = $medicalTermsItem['status'] ?? 'nonaktif';
         
         $medicalSupportChecked = old('medical_support', $defaults['additional_documents']['medical_support'] ?? false);
         $medicalTermsChecked = old('medical_terms', $defaults['additional_documents']['medical_terms'] ?? false);
 
-        $gardenerTechStatus = $config['gardener_tech_understanding']['status'] ?? 'nonaktif';
-        $gardenerNurseryStatus = $config['gardener_nursery_skill']['status'] ?? 'nonaktif';
-        $gardenerToolsStatus = $config['gardener_tools_skill']['status'] ?? 'nonaktif';
+        $gardenerTechItem = $getCriterion('gardener_tech_understanding');
+        $gardenerTechStatus = $gardenerTechItem['status'] ?? 'nonaktif';
+        
+        $gardenerNurseryItem = $getCriterion('gardener_nursery_skill');
+        $gardenerNurseryStatus = $gardenerNurseryItem['status'] ?? 'nonaktif';
+        
+        $gardenerToolsItem = $getCriterion('gardener_tools_skill');
+        $gardenerToolsStatus = $gardenerToolsItem['status'] ?? 'nonaktif';
         
         $gardenerTechChecked = old('gardener_tech_understanding', $defaults['additional_documents']['gardener_tech_understanding'] ?? false);
         $gardenerNurseryChecked = old('gardener_nursery_skill', $defaults['additional_documents']['gardener_nursery_skill'] ?? false);
@@ -889,64 +924,146 @@
                     </div>
                     @endif
 
-                    @foreach($customDocsConfig as $doc)
+                    @php
+                        $predefinedKeys = [
+                            'gender', 'age', 'education', 'major', 'experience', 
+                            'agd', 'sertifikat_agd_ambulance', 'sertifikat_agd',
+                            'sim_c', 'lisensi_sim_c_motor', 'sim_c_aktif',
+                            'sim_b1', 'lisensi_sim_b1_mobil_berat',
+                            'placement_ready', 'placement_choices',
+                            'medical_support', 'medical_terms', 
+                            'gardener_tech_understanding', 'gardener_nursery_skill', 'gardener_tools_skill'
+                        ];
+                        
+                        $activeCustomCriteria = collect($config['criteria'] ?? [])
+                            ->filter(function($c) use ($predefinedKeys) {
+                                return ($c['status'] ?? 'nonaktif') !== 'nonaktif' && !in_array($c['key'], $predefinedKeys);
+                            });
+                    @endphp
+
+                    @foreach($activeCustomCriteria as $doc)
                         @php
                             $key = $doc['key'];
                             $label = $doc['label'];
                             $status = $doc['status'];
-                            $existingPath = $defaults['additional_documents'][$key] ?? null;
+                            $type = $doc['type'] ?? 'file';
+                            $existingVal = $defaults['additional_documents'][$key] ?? null;
                         @endphp
-                        <div class="p-5 rounded-2xl border bg-white shadow-sm flex flex-col justify-between hover:border-[#003d7c]/30 hover:shadow-md transition-all {{ $errors->has('custom_doc_' . $key) ? 'border-rose-400' : 'border-slate-300' }}">
+                        
+                        <div class="p-5 rounded-2xl border bg-white shadow-sm flex flex-col justify-between hover:border-[#003d7c]/30 hover:shadow-md transition-all {{ $errors->has('custom_doc_' . $key) || $errors->has('custom_text_' . $key) || $errors->has('custom_number_' . $key) ? 'border-rose-400' : 'border-slate-300' }}">
                             <div class="flex items-center justify-between mb-4">
                                 <div class="flex items-center gap-3">
                                     <div class="p-2 rounded-xl bg-white border border-slate-200 text-slate-500 shrink-0">
                                         <svg class="w-4 h-4 text-[#003d7c]" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            @if($type === 'file')
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                            @elseif($type === 'text')
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            @elseif($type === 'checkbox')
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            @else
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+                                            @endif
                                         </svg>
                                     </div>
                                     <div>
-                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest block">{{ $label }}</span>
-                                        <span class="text-xs font-black text-slate-700 block">Syarat: Berkas Pendukung</span>
+                                        <span class="text-[8px] font-black text-slate-400 uppercase tracking-widest block" title="{{ $key }}">{{ $label }}</span>
+                                        <span class="text-xs font-black text-slate-700 block">
+                                            @if($type === 'file')
+                                                Syarat: Upload Berkas
+                                            @elseif($type === 'text')
+                                                Syarat: Keterangan Teks
+                                            @elseif($type === 'checkbox')
+                                                Syarat: Konfirmasi Pernyataan
+                                            @else
+                                                Syarat: Nilai Angka
+                                            @endif
+                                        </span>
                                     </div>
                                 </div>
                                 <span class="{{ $getBadgeClass($status) }}">{{ $getBadgeText($status) }}</span>
                             </div>
-                            <div>
-                                <div class="space-y-3">
-                                    @if(!empty($existingPath))
-                                        <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
-                                            <div class="flex items-center gap-2 text-emerald-800 text-xs font-bold">
-                                                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                                </svg>
-                                                <span>Berkas sudah terunggah</span>
-                                            </div>
-                                            <a href="{{ asset('storage/' . $existingPath) }}" target="_blank" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] rounded-lg transition-all shadow-sm">
-                                                Lihat Berkas
-                                            </a>
-                                        </div>
-                                    @endif
 
-                                    <!-- High-fidelity Drag and Drop Box -->
-                                    <div class="relative border-2 border-dashed rounded-2xl p-4 transition-all text-center bg-white group cursor-pointer hover:bg-slate-50/50 {{ $errors->has('custom_doc_' . $key) ? 'border-rose-400' : 'border-slate-300 hover:border-[#003d7c]' }}">
-                                        <input type="file" name="custom_doc_{{ $key }}" 
-                                            @change="customFiles['{{ $key }}'] = $event.target.files[0] ? $event.target.files[0].name : ''"
-                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                            {{ empty($existingPath) && $status === 'core' ? 'required' : '' }}>
-                                        <div class="space-y-1.5 pointer-events-none">
-                                            <svg class="w-8 h-8 text-slate-400 group-hover:text-[#003d7c] transition-colors mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z"></path>
-                                            </svg>
-                                            <div class="text-xs font-bold text-slate-700 group-hover:text-[#003d7c] transition-colors">
-                                                <span x-text="customFiles['{{ $key }}'] || '{{ !empty($existingPath) ? 'Sudah Diunggah (Klik / seret untuk ganti)' : 'Unggah Berkas ' . $label }}'"></span>
+                            <div>
+                                {{-- 1. FILE TYPE INPUT --}}
+                                @if($type === 'file')
+                                    <div class="space-y-3">
+                                        @if(!empty($existingVal))
+                                            <div class="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-200">
+                                                <div class="flex items-center gap-2 text-emerald-800 text-xs font-bold">
+                                                    <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    <span>Berkas sudah terunggah</span>
+                                                </div>
+                                                <a href="{{ asset('storage/' . $existingVal) }}" target="_blank" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] rounded-lg transition-all shadow-sm">
+                                                    Lihat Berkas
+                                                </a>
                                             </div>
-                                            <p class="text-[9px] text-slate-400">PDF, JPG, PNG (Maks. 2MB)</p>
+                                        @endif
+
+                                        <div class="relative border-2 border-dashed rounded-2xl p-4 transition-all text-center bg-white group cursor-pointer hover:bg-slate-50/50 {{ $errors->has('custom_doc_' . $key) ? 'border-rose-400' : 'border-slate-300 hover:border-[#003d7c]' }}">
+                                            <input type="file" name="custom_doc_{{ $key }}" 
+                                                @change="customFiles['{{ $key }}'] = $event.target.files[0] ? $event.target.files[0].name : ''"
+                                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                {{ empty($existingVal) && $status === 'core' ? 'required' : '' }}>
+                                            <div class="space-y-1.5 pointer-events-none">
+                                                <svg class="w-8 h-8 text-slate-400 group-hover:text-[#003d7c] transition-colors mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 00-2 2z"></path>
+                                                </svg>
+                                                <div class="text-xs font-bold text-slate-700 group-hover:text-[#003d7c] transition-colors">
+                                                    <span x-text="customFiles['{{ $key }}'] || '{{ !empty($existingVal) ? 'Sudah Diunggah (Klik / seret untuk ganti)' : 'Unggah Berkas ' . $label }}'"></span>
+                                                </div>
+                                                <p class="text-[9px] text-slate-400">PDF, JPG, PNG (Maks. 2MB)</p>
+                                            </div>
                                         </div>
+                                        @error('custom_doc_' . $key)
+                                            <p class="text-[10px] text-rose-600 font-semibold">{{ $message }}</p>
+                                        @enderror
                                     </div>
-                                    @error('custom_doc_' . $key)
-                                        <p class="text-[10px] text-rose-600 font-semibold">{{ $message }}</p>
-                                    @enderror
-                                </div>
+
+                                {{-- 2. TEXT TYPE INPUT --}}
+                                @elseif($type === 'text')
+                                    <div class="space-y-1">
+                                        <input type="text" name="custom_text_{{ $key }}" value="{{ old('custom_text_' . $key, $existingVal ?? '') }}"
+                                            placeholder="Masukkan keterangan {{ strtolower($label) }}..."
+                                            class="w-full px-4 py-2.5 rounded-xl border border-slate-350 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#003d7c]/10 focus:border-[#003d7c] text-sm text-slate-750 bg-white transition-all"
+                                            {{ $status === 'core' ? 'required' : '' }}>
+                                        @error('custom_text_' . $key)
+                                            <p class="text-[10px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                {{-- 3. CHECKBOX TYPE INPUT --}}
+                                @elseif($type === 'checkbox')
+                                    <div class="space-y-1">
+                                        <label class="flex items-start gap-3 p-3 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer select-none">
+                                            <input type="checkbox" name="custom_checkbox_{{ $key }}" value="1" 
+                                                class="mt-0.5 rounded border-slate-350 hover:border-slate-400 text-blue-600 focus:ring-blue-500/20"
+                                                {{ old('custom_checkbox_' . $key, $existingVal ?? false) ? 'checked' : '' }}
+                                                {{ $status === 'core' ? 'required' : '' }}>
+                                            <div class="min-w-0">
+                                                <strong class="text-slate-800 font-bold text-xs block mb-0.5">{{ $label }}</strong>
+                                                <span class="text-[10px] text-slate-500 block leading-normal">Saya menyatakan bersedia / menyetujui kriteria ini.</span>
+                                            </div>
+                                        </label>
+                                        @error('custom_checkbox_' . $key)
+                                            <p class="text-[10px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+
+                                {{-- 4. NUMBER TYPE INPUT --}}
+                                @else
+                                    <div class="space-y-1">
+                                        <input type="number" name="custom_number_{{ $key }}" value="{{ old('custom_number_' . $key, $existingVal ?? '') }}"
+                                            placeholder="Masukkan nilai angka {{ strtolower($label) }}..."
+                                            class="w-full px-4 py-2.5 rounded-xl border border-slate-355 hover:border-slate-400 focus:outline-none focus:ring-2 focus:ring-[#003d7c]/10 focus:border-[#003d7c] text-sm text-slate-755 bg-white transition-all"
+                                            {{ $status === 'core' ? 'required' : '' }}>
+                                        @error('custom_number_' . $key)
+                                            <p class="text-[10px] text-rose-600 font-semibold mt-1">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     @endforeach

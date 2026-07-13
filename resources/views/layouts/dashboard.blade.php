@@ -1,14 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-slate-50/50 flex relative" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
-    
-    <!-- Background Elements for Glassmorphism Context -->
-    <div class="fixed top-0 left-0 w-96 h-96 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none -translate-x-1/2 -translate-y-1/2 z-0"></div>
-    <div class="fixed bottom-0 right-0 w-96 h-96 bg-indigo-100 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none translate-x-1/3 translate-y-1/3 z-0"></div>
+<div class="min-h-screen bg-slate-50 flex relative" x-data="{ sidebarOpen: false, sidebarCollapsed: false }">
 
-    <!-- Desktop Sidebar (Glassmorphism) -->
-    <aside :class="sidebarCollapsed ? 'w-[80px]' : 'w-[280px]'" class="hidden lg:flex flex-col bg-white/70 backdrop-blur-2xl border-r border-white/50 text-slate-700 fixed h-full z-20 shadow-[4px_0_30px_rgba(0,0,0,0.03)] transition-all duration-300 overflow-x-hidden">
+    <!-- Desktop Sidebar -->
+    <aside :class="sidebarCollapsed ? 'w-[80px]' : 'w-[280px]'" class="hidden lg:flex flex-col bg-white border-r border-slate-200 text-slate-700 fixed h-full z-20 shadow-sm transition-all duration-300 overflow-x-hidden">
         
         <!-- Logo Header -->
         <div class="h-20 flex items-center px-3 border-b border-slate-200/50 shrink-0 transition-all"
@@ -98,6 +94,14 @@
                     </a>
                 </div>
 
+                <div class="border-b border-slate-200/50 pb-1 mb-1">
+                    <a href="{{ route('hrd.kriteria.index') }}" title="Kriteria Kandidat" class="flex items-center px-4 py-3 rounded-xl transition-all {{ Request::routeIs('hrd.kriteria.*') ? 'bg-[#003d7c] text-white shadow-lg shadow-blue-900/20' : 'text-slate-600 hover:bg-blue-50 hover:text-[#003d7c] hover:shadow-md border border-transparent hover:border-blue-100' }}">
+                        <svg class="w-5 h-5 shrink-0" :class="sidebarCollapsed ? 'mx-auto' : 'mr-3'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        <span x-show="!sidebarCollapsed" x-transition.opacity.duration.300ms class="font-semibold text-sm whitespace-nowrap">Kriteria Kandidat</span>
+                    </a>
+                </div>
+
+
 
             @else
                 <!-- PELAMAR SIDEBAR LINKS -->
@@ -148,13 +152,13 @@
         </div>
     </aside>
 
-    <!-- Mobile Drawer Sidebar (Glassmorphism backdrop) -->
+    <!-- Mobile Drawer Sidebar -->
     <div x-show="sidebarOpen" class="fixed inset-0 z-40 lg:hidden flex" x-cloak>
         <!-- Overlay -->
-        <div @click="sidebarOpen = false" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300"></div>
+        <div @click="sidebarOpen = false" class="fixed inset-0 bg-slate-900/40 transition-opacity duration-300"></div>
 
         <!-- Sidebar Content -->
-        <div class="relative flex-1 flex flex-col max-w-[280px] w-full bg-white/95 backdrop-blur-2xl border-r border-white text-slate-700 transition duration-300 transform shadow-2xl"
+        <div class="relative flex-1 flex flex-col max-w-[280px] w-full bg-white border-r border-slate-200 text-slate-700 transition duration-300 transform shadow-xl"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="-translate-x-full"
              x-transition:enter-end="translate-x-0"
@@ -216,6 +220,14 @@
                             <span class="font-semibold text-sm">Data Mitra</span>
                         </a>
                     </div>
+
+                    <div class="border-b border-slate-200/50 pb-1 mb-1">
+                        <a href="{{ route('hrd.kriteria.index') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all {{ Request::routeIs('hrd.kriteria.*') ? 'bg-[#003d7c] text-white shadow-lg shadow-blue-900/20' : 'text-slate-600 hover:bg-slate-50 hover:text-[#003d7c]' }}">
+                            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                            <span class="font-semibold text-sm">Kriteria Kandidat</span>
+                        </a>
+                    </div>
+
 
                 @else
                     <div class="border-b border-slate-200/50 pb-1 mb-1">

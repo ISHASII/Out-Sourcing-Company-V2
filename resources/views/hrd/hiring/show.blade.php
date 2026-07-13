@@ -6,7 +6,23 @@
     <div class="space-y-6 animate-fade-in" 
          x-data="{ 
             activeApplicant: null,
-            customDocsConfig: {{ json_encode($posting->requirements_config['custom_documents'] ?? []) }},
+            customDocsConfig: {{ json_encode(
+                collect($posting->requirements_config['criteria'] ?? [])
+                    ->filter(function($c) {
+                        $predefined = [
+                            'gender', 'age', 'education', 'major', 'experience', 
+                            'agd', 'sertifikat_agd_ambulance', 'sertifikat_agd',
+                            'sim_c', 'lisensi_sim_c_motor', 'sim_c_aktif',
+                            'sim_b1', 'lisensi_sim_b1_mobil_berat',
+                            'placement_ready', 'placement_choices',
+                            'medical_support', 'medical_terms', 
+                            'gardener_tech_understanding', 'gardener_nursery_skill', 'gardener_tools_skill'
+                        ];
+                        return ($c['status'] ?? 'nonaktif') !== 'nonaktif' && !in_array($c['key'], $predefined);
+                    })
+                    ->values()
+                    ->toArray()
+            ) }},
             priorityPage: 1,
             priorityPerPage: 5,
             totalPriority: {{ $priorityApplications->count() }},
@@ -958,31 +974,63 @@
                                     </template>
                                     @endif
 
-                                    <!-- Custom Documents loop based on requirements config -->
+                                    <!-- Custom / General Requirements dynamic loop -->
                                     <template x-for="(doc, idx) in customDocsConfig" :key="idx">
                                         <div class="col-span-full sm:col-span-1">
-                                            <!-- If applicant uploaded the custom document -->
-                                            <template x-if="activeApplicant && activeApplicant.additional_documents && activeApplicant.additional_documents[doc.key]">
-                                                <a :href="activeApplicant.additional_documents[doc.key]" target="_blank"
-                                                   class="flex items-center gap-2.5 p-2.5 bg-white border border-slate-100 hover:border-blue-100 hover:bg-blue-50/50 rounded-xl transition-all group">
-                                                    <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
-                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                                                    </div>
-                                                    <div class="text-left">
-                                                        <span class="text-[9px] text-slate-400 block font-extrabold uppercase tracking-wide" x-text="doc.label"></span>
-                                                        <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700">Lihat Berkas</span>
-                                                    </div>
-                                                </a>
+                                            <!-- If applicant provided the value -->
+                                            <template x-if="activeApplicant && activeApplicant.additional_documents && activeApplicant.additional_documents[doc.key] !== undefined && activeApplicant.additional_documents[doc.key] !== null && activeApplicant.additional_documents[doc.key] !== ''">
+                                                <div>
+                                                    <!-- File Type: show View Link -->
+                                                    <template x-if="doc.type === 'file'">
+                                                        <a :href="activeApplicant.additional_documents[doc.key]" target="_blank"
+                                                           class="flex items-center gap-2.5 p-2.5 bg-white border border-slate-100 hover:border-blue-100 hover:bg-blue-50/50 rounded-xl transition-all group">
+                                                            <div class="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                                            </div>
+                                                            <div class="text-left">
+                                                                <span class="text-[9px] text-slate-400 block font-extrabold uppercase tracking-wide" x-text="doc.label"></span>
+                                                                <span class="text-xs font-bold text-slate-700 group-hover:text-blue-700">Lihat Berkas</span>
+                                                            </div>
+                                                        </a>
+                                                    </template>
+                                                    
+                                                    <!-- Checkbox Type: show Checked State -->
+                                                    <template x-if="doc.type === 'checkbox'">
+                                                        <div class="flex items-center gap-2.5 p-2.5 bg-white border border-slate-100 rounded-xl">
+                                                            <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                            </div>
+                                                            <div class="text-left">
+                                                                <span class="text-[9px] text-slate-400 block font-extrabold uppercase tracking-wide" x-text="doc.label"></span>
+                                                                <span class="text-xs font-bold text-emerald-700" x-text="activeApplicant.additional_documents[doc.key] ? 'Ya / Setuju' : 'Tidak / Tidak Setuju'"></span>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+
+                                                    <!-- Text or Number Type: show Raw Value -->
+                                                    <template x-if="doc.type === 'text' || doc.type === 'number'">
+                                                        <div class="flex items-center gap-2.5 p-2.5 bg-white border border-slate-100 rounded-xl">
+                                                            <div class="p-2 bg-blue-50 text-[#003d7c] rounded-lg">
+                                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                            </div>
+                                                            <div class="text-left min-w-0 flex-1">
+                                                                <span class="text-[9px] text-slate-400 block font-extrabold uppercase tracking-wide truncate" x-text="doc.label"></span>
+                                                                <span class="text-xs font-bold text-slate-700 block truncate" x-text="activeApplicant.additional_documents[doc.key]"></span>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </template>
-                                            <!-- If applicant DID NOT upload the custom document -->
-                                            <template x-if="!activeApplicant || !activeApplicant.additional_documents || !activeApplicant.additional_documents[doc.key]">
+                                            
+                                            <!-- If applicant DID NOT provide the value -->
+                                            <template x-if="!activeApplicant || !activeApplicant.additional_documents || activeApplicant.additional_documents[doc.key] === undefined || activeApplicant.additional_documents[doc.key] === null || activeApplicant.additional_documents[doc.key] === ''">
                                                 <div class="flex items-center gap-2.5 p-2.5 bg-slate-100/50 border border-slate-200/50 rounded-xl">
                                                     <div class="p-2 bg-slate-200 text-slate-400 rounded-lg">
                                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                                                     </div>
                                                     <div class="text-left">
                                                         <span class="text-[9px] text-slate-400 block font-extrabold uppercase tracking-wide" x-text="doc.label"></span>
-                                                        <span class="text-xs font-bold text-slate-400">Tidak Diunggah</span>
+                                                        <span class="text-xs font-bold text-slate-400">Tidak Diisi</span>
                                                     </div>
                                                 </div>
                                             </template>

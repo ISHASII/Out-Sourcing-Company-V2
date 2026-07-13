@@ -8,6 +8,7 @@ use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\PelamarLowonganController;
 use App\Http\Controllers\HrdPartnerController;
 use App\Http\Controllers\SuperAdminController;
+use App\Http\Controllers\CriteriaController;
 
 Route::get('/', [LandingPageController::class, 'index']);
 
@@ -52,6 +53,13 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/applications/{jobApplication}/accept', [HrdHiringController::class, 'acceptApplication'])->name('hrd.applications.accept');
         Route::post('/applications/{jobApplication}/reject', [HrdHiringController::class, 'rejectApplication'])->name('hrd.applications.reject');
         Route::get('/applications/{jobApplication}/pdf', [HrdHiringController::class, 'downloadPdf'])->name('hrd.applications.pdf');
+
+        // Kriteria Kandidat CRUD
+        Route::get('/kriteria', [CriteriaController::class, 'index'])->name('hrd.kriteria.index');
+        Route::get('/kriteria/{category}', [CriteriaController::class, 'show'])->name('hrd.kriteria.show');
+        Route::post('/kriteria', [CriteriaController::class, 'store'])->name('hrd.kriteria.store');
+        Route::put('/kriteria/{criterion}', [CriteriaController::class, 'update'])->name('hrd.kriteria.update');
+        Route::delete('/kriteria/{criterion}', [CriteriaController::class, 'destroy'])->name('hrd.kriteria.destroy');
     });
 
     // === PELAMAR ROUTES ===

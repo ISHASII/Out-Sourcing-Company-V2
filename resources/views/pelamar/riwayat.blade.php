@@ -161,7 +161,7 @@
                                     </div>
                                 </div>
 
-                                @if($application->status === 'pending' && $application->posting->is_active && (!$application->posting->active_until || $application->posting->active_until->gte(now()->startOfDay())))
+                                @if($application->status === 'pending' && !$application->posting->isExpired())
                                     <div class="pt-2 border-t border-slate-200/60 mt-1">
                                         <a href="{{ route('pelamar.lowongan.apply', $application->posting) }}" class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#003d7c]/90 to-[#005fb8]/90 hover:from-[#003d7c] hover:to-[#005fb8] text-white font-black text-[10px] uppercase rounded-xl transition-all shadow-sm">
                                             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;">

@@ -7,7 +7,6 @@
 
     {{-- Page Header --}}
     <div class="relative overflow-hidden bg-gradient-to-r from-[#002855] to-[#004b93] text-white p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
-        <div class="absolute inset-0 bg-white/5 backdrop-blur-xs"></div>
         <div class="relative z-10 space-y-2">
             <span class="bg-blue-500/25 text-blue-200 text-[10px] font-extrabold px-3.5 py-1 rounded-lg uppercase tracking-widest border border-blue-400/20">Manajemen Mitra</span>
             <h1 class="text-3xl font-extrabold tracking-tight">Mitra Strategis & Partner</h1>

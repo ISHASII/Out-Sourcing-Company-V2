@@ -35,6 +35,13 @@
                         <x-landing.icon name="clock" class="h-3 w-3 text-slate-400" />
                         {{ $job['posted'] }}
                     </span>
+                    @if(!empty($job['active_until']))
+                        <span
+                            class="inline-flex items-center gap-1.5 px-3 py-1 bg-rose-50 border border-rose-100 text-rose-600 rounded-lg text-xs font-bold whitespace-nowrap">
+                            <x-landing.icon name="clock" class="h-3 w-3 text-rose-450" />
+                            Batas: {{ $job['active_until'] }}
+                        </span>
+                    @endif
                 </div>
             </div>
 

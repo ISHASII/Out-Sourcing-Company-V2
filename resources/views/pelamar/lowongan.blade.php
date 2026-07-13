@@ -6,15 +6,48 @@
     @php
         $mappedPostings = $postings->map(function($p) use ($appliedJobIds) {
             $config = $p->requirements_config ?? [];
+            $criteriaList = collect($config['criteria'] ?? []);
             
-            $gender = $config['gender'] ?? ['status' => 'core', 'value' => $p->core_gender];
-            $age = $config['age'] ?? ['status' => 'core', 'min' => $p->core_min_age, 'max' => $p->core_max_age];
-            $education = $config['education'] ?? ['status' => 'core', 'value' => $p->core_min_education];
-            $agd = $config['agd'] ?? ['status' => $p->core_requires_agd ? 'core' : 'secondary'];
-            $simc = $config['sim_c'] ?? ['status' => $p->core_requires_sim_c ? 'core' : 'secondary'];
-            $simb1 = $config['sim_b1'] ?? ['status' => $p->core_requires_sim_b1 ? 'core' : 'secondary'];
-            $experience = $config['experience'] ?? ['status' => 'secondary', 'value' => $p->second_min_experience];
-            $placement = $config['placement_ready'] ?? ['status' => 'core'];
+            $getCriterion = function($key) use ($criteriaList) {
+                return $criteriaList->firstWhere('key', $key);
+            };
+
+            // Gender
+            $genderItem = $getCriterion('gender');
+            $genderVal = $genderItem['value'] ?? $p->core_gender ?? 'both';
+            $genderStatus = $genderItem['status'] ?? 'core';
+
+            // Age
+            $ageItem = $getCriterion('age');
+            $ageMin = $ageItem['value']['min'] ?? $p->core_min_age ?? 18;
+            $ageMax = $ageItem['value']['max'] ?? $p->core_max_age ?? 65;
+            $ageStatus = $ageItem['status'] ?? 'core';
+
+            // Education
+            $educationItem = $getCriterion('education');
+            $educationVal = $educationItem['value'] ?? $p->core_min_education ?? 'SMA/SMK';
+            $educationStatus = $educationItem['status'] ?? 'core';
+
+            // AGD
+            $agdItem = $getCriterion('sertifikat_agd_ambulance') ?? $getCriterion('agd') ?? $getCriterion('sertifikat_agd');
+            $agdStatus = $agdItem['status'] ?? ($p->core_requires_agd ? 'core' : 'nonaktif');
+
+            // SIM C
+            $simcItem = $getCriterion('sim_c_aktif') ?? $getCriterion('lisensi_sim_c_motor') ?? $getCriterion('sim_c');
+            $simcStatus = $simcItem['status'] ?? ($p->core_requires_sim_c ? 'core' : 'nonaktif');
+
+            // SIM B1
+            $simb1Item = $getCriterion('lisensi_sim_b1_mobil_berat') ?? $getCriterion('sim_b1');
+            $simb1Status = $simb1Item['status'] ?? ($p->core_requires_sim_b1 ? 'core' : 'nonaktif');
+
+            // Experience
+            $experienceItem = $getCriterion('experience');
+            $experienceVal = $experienceItem['value'] ?? $p->second_min_experience ?? 0;
+            $experienceStatus = $experienceItem['status'] ?? 'nonaktif';
+
+            // Placement
+            $placementItem = $getCriterion('placement_ready');
+            $placementStatus = $placementItem['status'] ?? 'core';
 
             return [
                 'id' => $p->id,
@@ -30,26 +63,26 @@
                 'has_applied' => in_array($p->id, $appliedJobIds),
                 'requirements' => [
                     'gender' => [
-                        'value' => $gender['value'] ?? 'male',
-                        'status' => $gender['status'] ?? 'core'
+                        'value' => $genderVal,
+                        'status' => $genderStatus
                     ],
                     'age' => [
-                        'min' => $age['min'] ?? 18,
-                        'max' => $age['max'] ?? 65,
-                        'status' => $age['status'] ?? 'core'
+                        'min' => $ageMin,
+                        'max' => $ageMax,
+                        'status' => $ageStatus
                     ],
                     'education' => [
-                        'value' => $education['value'] ?? 'SMA/SMK',
-                        'status' => $education['status'] ?? 'core'
+                        'value' => $educationVal,
+                        'status' => $educationStatus
                     ],
-                    'agd' => ['status' => $agd['status'] ?? 'nonaktif'],
-                    'sim_c' => ['status' => $simc['status'] ?? 'nonaktif'],
-                    'sim_b1' => ['status' => $simb1['status'] ?? 'nonaktif'],
+                    'agd' => ['status' => $agdStatus],
+                    'sim_c' => ['status' => $simcStatus],
+                    'sim_b1' => ['status' => $simb1Status],
                     'experience' => [
-                        'value' => $experience['value'] ?? 0,
-                        'status' => $experience['status'] ?? 'secondary'
+                        'value' => $experienceVal,
+                        'status' => $experienceStatus
                     ],
-                    'placement' => ['status' => $placement['status'] ?? 'core']
+                    'placement' => ['status' => $placementStatus]
                 ]
             ];
         });

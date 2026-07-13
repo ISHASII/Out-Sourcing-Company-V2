@@ -20,7 +20,7 @@ class HrdHiringController extends Controller
 
     public function index()
     {
-        $postings = JobPosting::latest()->get();
+        $postings = JobPosting::latest()->paginate(5);
 
         return view('hrd.hiring', [
             'postings' => $postings,
@@ -29,9 +29,11 @@ class HrdHiringController extends Controller
 
     public function create()
     {
+        $allCriteria = \App\Models\Criterion::orderBy('sort_order')->get();
         return view('hrd.hiring.create', [
             'categories' => $this->categories(),
             'educationLevels' => $this->educationLevels(),
+            'allCriteria' => $allCriteria,
         ]);
     }
 
@@ -43,93 +45,98 @@ class HrdHiringController extends Controller
         $data['is_active'] = $request->boolean('is_active', true);
         $data['salary_hidden'] = $request->boolean('salary_hidden');
 
-        // Extract requirements config status and values
-        $config = [
-            'gender' => [
-                'status' => $request->input('req_gender_status', 'nonaktif'),
-                'value' => $request->input('req_gender_value', 'male'),
-            ],
-            'age' => [
-                'status' => $request->input('req_age_status', 'nonaktif'),
-                'min' => $request->input('req_age_min', 18),
-                'max' => $request->input('req_age_max', 65),
-            ],
-            'education' => [
-                'status' => $request->input('req_education_status', 'nonaktif'),
-                'value' => $request->input('req_education_value', 'SMA/SMK'),
-            ],
-            'agd' => [
-                'status' => $request->input('req_agd_status', 'nonaktif'),
-            ],
-            'sim_c' => [
-                'status' => $request->input('req_sim_c_status', 'nonaktif'),
-            ],
-            'sim_b1' => [
-                'status' => $request->input('req_sim_b1_status', 'nonaktif'),
-            ],
-            'experience' => [
-                'status' => $request->input('req_experience_status', 'nonaktif'),
-                'value' => $request->input('req_experience_value', 0),
-            ],
-            'placement_ready' => [
-                'status' => $request->input('req_placement_ready_status', 'nonaktif'),
-                'type' => $request->input('req_placement_type', 'anywhere'),
-                'value' => $request->input('req_placement_type') === 'specific' ? $request->input('location_city') : null,
-            ],
-            'major' => [
-                'status' => $request->input('req_major_status', 'nonaktif'),
-                'value' => $request->input('req_major_value'),
-            ],
-            'placement_choices' => [
-                'status' => $request->input('req_placement_choices_status', 'nonaktif'),
-                'value' => $request->input('req_placement_choices_value'),
-            ],
-            'medical_support' => [
-                'status' => $request->input('req_medical_support_status', 'nonaktif'),
-            ],
-            'medical_terms' => [
-                'status' => $request->input('req_medical_terms_status', 'nonaktif'),
-            ],
-            'gardener_tech_understanding' => [
-                'status' => $request->input('req_gardener_tech_understanding_status', 'nonaktif'),
-            ],
-            'gardener_nursery_skill' => [
-                'status' => $request->input('req_gardener_nursery_skill_status', 'nonaktif'),
-            ],
-            'gardener_tools_skill' => [
-                'status' => $request->input('req_gardener_tools_skill_status', 'nonaktif'),
-            ],
-        ];
+        $activeCriteriaData = json_decode($request->input('active_criteria_data', '[]'), true);
+        $criteriaConfigs = [];
 
-        $customDocs = [];
-        $docKeys = $request->input('req_custom_doc_keys', []);
-        $docLabels = $request->input('req_custom_doc_labels', []);
-        $docStatuses = $request->input('req_custom_doc_statuses', []);
-        for ($i = 0; $i < count($docKeys); $i++) {
-            if (!empty($docKeys[$i])) {
-                $customDocs[] = [
-                    'key' => trim($docKeys[$i]),
-                    'label' => trim($docLabels[$i] ?? $docKeys[$i]),
-                    'status' => $docStatuses[$i] ?? 'core',
-                ];
+        foreach ($activeCriteriaData as $item) {
+            $key = $item['key'];
+            $status = $item['status'] ?? 'nonaktif';
+            $weight = (int) ($item['weight'] ?? 0);
+
+            // Dynamically register if it doesn't exist in Criterion table
+            $c = \App\Models\Criterion::where('key', $key)->first();
+            if (!$c) {
+                $c = \App\Models\Criterion::create([
+                    'category' => 'General',
+                    'key' => $key,
+                    'label' => $item['label'] ?? ucwords(str_replace('_', ' ', $key)),
+                    'type' => $item['type'] ?? 'file',
+                    'config' => [],
+                    'default_status' => $status,
+                    'default_weight' => $weight,
+                    'sort_order' => \App\Models\Criterion::max('sort_order') + 1
+                ]);
             }
-        }
-        $config['custom_documents'] = $customDocs;
 
+            $value = null;
+            if ($key === 'gender') {
+                $value = $request->input('req_gender_value', 'both');
+            } 
+            elseif ($key === 'age') {
+                $value = [
+                    'min' => (int) $request->input('req_age_min', 18),
+                    'max' => (int) $request->input('req_age_max', 65),
+                ];
+            } 
+            elseif ($key === 'education') {
+                $value = $request->input('req_education_value', 'SMA/SMK');
+            } 
+            elseif ($key === 'experience') {
+                $value = (int) $request->input('req_experience_value', 0);
+            } 
+            elseif ($key === 'placement_ready') {
+                $value = [
+                    'type' => $request->input('req_placement_type', 'anywhere'),
+                    'city' => $request->input('req_placement_type') === 'specific' ? $request->input('location_city') : null,
+                ];
+            } 
+            elseif ($key === 'major') {
+                $value = $request->input('req_major_value');
+            } 
+            elseif ($key === 'placement_choices') {
+                $value = $request->input('req_placement_choices_value');
+            }
+
+            $criteriaConfigs[] = [
+                'key' => $key,
+                'label' => $c->label,
+                'type' => $c->type,
+                'status' => $status,
+                'weight' => $weight,
+                'value' => $value
+            ];
+        }
+
+        $config = ['criteria' => $criteriaConfigs];
         $data['requirements_config'] = $config;
 
-        // Also fill existing DB columns for backward compatibility / fallback
-        $data['core_gender'] = $config['gender']['status'] !== 'nonaktif' ? $config['gender']['value'] : 'male';
-        $data['core_min_age'] = $config['age']['status'] !== 'nonaktif' ? $config['age']['min'] : 18;
-        $data['core_max_age'] = $config['age']['status'] !== 'nonaktif' ? $config['age']['max'] : 65;
-        $data['core_min_education'] = $config['education']['status'] !== 'nonaktif' ? $config['education']['value'] : 'SMA/SMK';
-        $data['core_requires_agd'] = $config['agd']['status'] === 'core';
-        $data['core_requires_sim_c'] = $config['sim_c']['status'] === 'core';
-        $data['core_requires_sim_b1'] = $config['sim_b1']['status'] === 'core';
-        $data['second_min_experience'] = $config['experience']['status'] !== 'nonaktif' ? $config['experience']['value'] : 0;
-        $data['second_requires_placement_ready'] = $config['placement_ready']['status'] === 'core';
+        // Populate fallback columns for backward compatibility
+        $genderConf = collect($criteriaConfigs)->firstWhere('key', 'gender');
+        $ageConf = collect($criteriaConfigs)->firstWhere('key', 'age');
+        $eduConf = collect($criteriaConfigs)->firstWhere('key', 'education');
+        $expConf = collect($criteriaConfigs)->firstWhere('key', 'experience');
+        $placementConf = collect($criteriaConfigs)->firstWhere('key', 'placement_ready');
+        
+        $agdConf = collect($criteriaConfigs)->firstWhere('key', 'agd') 
+            ?? collect($criteriaConfigs)->firstWhere('key', 'sertifikat_agd_ambulance');
+        $simcConf = collect($criteriaConfigs)->firstWhere('key', 'sim_c') 
+            ?? collect($criteriaConfigs)->firstWhere('key', 'lisensi_sim_c_motor');
+        $simb1Conf = collect($criteriaConfigs)->firstWhere('key', 'sim_b1') 
+            ?? collect($criteriaConfigs)->firstWhere('key', 'lisensi_sim_b1_mobil_berat');
 
-        if ($config['placement_ready']['type'] === 'anywhere') {
+        $data['core_gender'] = ($genderConf && $genderConf['status'] !== 'nonaktif') ? $genderConf['value'] : 'male';
+        $data['core_min_age'] = ($ageConf && $ageConf['status'] !== 'nonaktif') ? $ageConf['value']['min'] : 18;
+        $data['core_max_age'] = ($ageConf && $ageConf['status'] !== 'nonaktif') ? $ageConf['value']['max'] : 65;
+        $data['core_min_education'] = ($eduConf && $eduConf['status'] !== 'nonaktif') ? $eduConf['value'] : 'SMA/SMK';
+        
+        $data['core_requires_agd'] = $agdConf && $agdConf['status'] === 'core';
+        $data['core_requires_sim_c'] = $simcConf && $simcConf['status'] === 'core';
+        $data['core_requires_sim_b1'] = $simb1Conf && $simb1Conf['status'] === 'core';
+        
+        $data['second_min_experience'] = ($expConf && $expConf['status'] !== 'nonaktif') ? $expConf['value'] : 0;
+        $data['second_requires_placement_ready'] = $placementConf && $placementConf['status'] === 'core';
+
+        if ($placementConf && isset($placementConf['value']['type']) && $placementConf['value']['type'] === 'anywhere') {
             $data['location_city'] = null;
         }
 
@@ -143,6 +150,7 @@ class HrdHiringController extends Controller
         }
 
         JobPosting::create($data);
+
 
         return redirect()->route('hrd.hiring')->with('success', 'Lowongan berhasil dibuat.');
     }
@@ -174,10 +182,12 @@ class HrdHiringController extends Controller
 
     public function edit(JobPosting $jobPosting)
     {
+        $allCriteria = \App\Models\Criterion::orderBy('sort_order')->get();
         return view('hrd.hiring.edit', [
             'posting' => $jobPosting,
             'categories' => $this->categories(),
             'educationLevels' => $this->educationLevels(),
+            'allCriteria' => $allCriteria,
         ]);
     }
 
@@ -188,93 +198,98 @@ class HrdHiringController extends Controller
         $data['is_active'] = $request->boolean('is_active', true);
         $data['salary_hidden'] = $request->boolean('salary_hidden');
 
-        // Extract requirements config status and values
-        $config = [
-            'gender' => [
-                'status' => $request->input('req_gender_status', 'nonaktif'),
-                'value' => $request->input('req_gender_value', 'male'),
-            ],
-            'age' => [
-                'status' => $request->input('req_age_status', 'nonaktif'),
-                'min' => $request->input('req_age_min', 18),
-                'max' => $request->input('req_age_max', 65),
-            ],
-            'education' => [
-                'status' => $request->input('req_education_status', 'nonaktif'),
-                'value' => $request->input('req_education_value', 'SMA/SMK'),
-            ],
-            'agd' => [
-                'status' => $request->input('req_agd_status', 'nonaktif'),
-            ],
-            'sim_c' => [
-                'status' => $request->input('req_sim_c_status', 'nonaktif'),
-            ],
-            'sim_b1' => [
-                'status' => $request->input('req_sim_b1_status', 'nonaktif'),
-            ],
-            'experience' => [
-                'status' => $request->input('req_experience_status', 'nonaktif'),
-                'value' => $request->input('req_experience_value', 0),
-            ],
-            'placement_ready' => [
-                'status' => $request->input('req_placement_ready_status', 'nonaktif'),
-                'type' => $request->input('req_placement_type', 'anywhere'),
-                'value' => $request->input('req_placement_type') === 'specific' ? $request->input('location_city') : null,
-            ],
-            'major' => [
-                'status' => $request->input('req_major_status', 'nonaktif'),
-                'value' => $request->input('req_major_value'),
-            ],
-            'placement_choices' => [
-                'status' => $request->input('req_placement_choices_status', 'nonaktif'),
-                'value' => $request->input('req_placement_choices_value'),
-            ],
-            'medical_support' => [
-                'status' => $request->input('req_medical_support_status', 'nonaktif'),
-            ],
-            'medical_terms' => [
-                'status' => $request->input('req_medical_terms_status', 'nonaktif'),
-            ],
-            'gardener_tech_understanding' => [
-                'status' => $request->input('req_gardener_tech_understanding_status', 'nonaktif'),
-            ],
-            'gardener_nursery_skill' => [
-                'status' => $request->input('req_gardener_nursery_skill_status', 'nonaktif'),
-            ],
-            'gardener_tools_skill' => [
-                'status' => $request->input('req_gardener_tools_skill_status', 'nonaktif'),
-            ],
-        ];
+        $activeCriteriaData = json_decode($request->input('active_criteria_data', '[]'), true);
+        $criteriaConfigs = [];
 
-        $customDocs = [];
-        $docKeys = $request->input('req_custom_doc_keys', []);
-        $docLabels = $request->input('req_custom_doc_labels', []);
-        $docStatuses = $request->input('req_custom_doc_statuses', []);
-        for ($i = 0; $i < count($docKeys); $i++) {
-            if (!empty($docKeys[$i])) {
-                $customDocs[] = [
-                    'key' => trim($docKeys[$i]),
-                    'label' => trim($docLabels[$i] ?? $docKeys[$i]),
-                    'status' => $docStatuses[$i] ?? 'core',
-                ];
+        foreach ($activeCriteriaData as $item) {
+            $key = $item['key'];
+            $status = $item['status'] ?? 'nonaktif';
+            $weight = (int) ($item['weight'] ?? 0);
+
+            // Dynamically register if it doesn't exist in Criterion table
+            $c = \App\Models\Criterion::where('key', $key)->first();
+            if (!$c) {
+                $c = \App\Models\Criterion::create([
+                    'category' => 'General',
+                    'key' => $key,
+                    'label' => $item['label'] ?? ucwords(str_replace('_', ' ', $key)),
+                    'type' => $item['type'] ?? 'file',
+                    'config' => [],
+                    'default_status' => $status,
+                    'default_weight' => $weight,
+                    'sort_order' => \App\Models\Criterion::max('sort_order') + 1
+                ]);
             }
-        }
-        $config['custom_documents'] = $customDocs;
 
+            $value = null;
+            if ($key === 'gender') {
+                $value = $request->input('req_gender_value', 'both');
+            } 
+            elseif ($key === 'age') {
+                $value = [
+                    'min' => (int) $request->input('req_age_min', 18),
+                    'max' => (int) $request->input('req_age_max', 65),
+                ];
+            } 
+            elseif ($key === 'education') {
+                $value = $request->input('req_education_value', 'SMA/SMK');
+            } 
+            elseif ($key === 'experience') {
+                $value = (int) $request->input('req_experience_value', 0);
+            } 
+            elseif ($key === 'placement_ready') {
+                $value = [
+                    'type' => $request->input('req_placement_type', 'anywhere'),
+                    'city' => $request->input('req_placement_type') === 'specific' ? $request->input('location_city') : null,
+                ];
+            } 
+            elseif ($key === 'major') {
+                $value = $request->input('req_major_value');
+            } 
+            elseif ($key === 'placement_choices') {
+                $value = $request->input('req_placement_choices_value');
+            }
+
+            $criteriaConfigs[] = [
+                'key' => $key,
+                'label' => $c->label,
+                'type' => $c->type,
+                'status' => $status,
+                'weight' => $weight,
+                'value' => $value
+            ];
+        }
+
+        $config = ['criteria' => $criteriaConfigs];
         $data['requirements_config'] = $config;
 
-        // Also fill existing DB columns for backward compatibility / fallback
-        $data['core_gender'] = $config['gender']['status'] !== 'nonaktif' ? $config['gender']['value'] : 'male';
-        $data['core_min_age'] = $config['age']['status'] !== 'nonaktif' ? $config['age']['min'] : 18;
-        $data['core_max_age'] = $config['age']['status'] !== 'nonaktif' ? $config['age']['max'] : 65;
-        $data['core_min_education'] = $config['education']['status'] !== 'nonaktif' ? $config['education']['value'] : 'SMA/SMK';
-        $data['core_requires_agd'] = $config['agd']['status'] === 'core';
-        $data['core_requires_sim_c'] = $config['sim_c']['status'] === 'core';
-        $data['core_requires_sim_b1'] = $config['sim_b1']['status'] === 'core';
-        $data['second_min_experience'] = $config['experience']['status'] !== 'nonaktif' ? $config['experience']['value'] : 0;
-        $data['second_requires_placement_ready'] = $config['placement_ready']['status'] === 'core';
+        // Populate fallback columns for backward compatibility
+        $genderConf = collect($criteriaConfigs)->firstWhere('key', 'gender');
+        $ageConf = collect($criteriaConfigs)->firstWhere('key', 'age');
+        $eduConf = collect($criteriaConfigs)->firstWhere('key', 'education');
+        $expConf = collect($criteriaConfigs)->firstWhere('key', 'experience');
+        $placementConf = collect($criteriaConfigs)->firstWhere('key', 'placement_ready');
+        
+        $agdConf = collect($criteriaConfigs)->firstWhere('key', 'agd') 
+            ?? collect($criteriaConfigs)->firstWhere('key', 'sertifikat_agd_ambulance');
+        $simcConf = collect($criteriaConfigs)->firstWhere('key', 'sim_c') 
+            ?? collect($criteriaConfigs)->firstWhere('key', 'lisensi_sim_c_motor');
+        $simb1Conf = collect($criteriaConfigs)->firstWhere('key', 'sim_b1') 
+            ?? collect($criteriaConfigs)->firstWhere('key', 'lisensi_sim_b1_mobil_berat');
 
-        if ($config['placement_ready']['type'] === 'anywhere') {
+        $data['core_gender'] = ($genderConf && $genderConf['status'] !== 'nonaktif') ? $genderConf['value'] : 'male';
+        $data['core_min_age'] = ($ageConf && $ageConf['status'] !== 'nonaktif') ? $ageConf['value']['min'] : 18;
+        $data['core_max_age'] = ($ageConf && $ageConf['status'] !== 'nonaktif') ? $ageConf['value']['max'] : 65;
+        $data['core_min_education'] = ($eduConf && $eduConf['status'] !== 'nonaktif') ? $eduConf['value'] : 'SMA/SMK';
+        
+        $data['core_requires_agd'] = $agdConf && $agdConf['status'] === 'core';
+        $data['core_requires_sim_c'] = $simcConf && $simcConf['status'] === 'core';
+        $data['core_requires_sim_b1'] = $simb1Conf && $simb1Conf['status'] === 'core';
+        
+        $data['second_min_experience'] = ($expConf && $expConf['status'] !== 'nonaktif') ? $expConf['value'] : 0;
+        $data['second_requires_placement_ready'] = $placementConf && $placementConf['status'] === 'core';
+
+        if ($placementConf && isset($placementConf['value']['type']) && $placementConf['value']['type'] === 'anywhere') {
             $data['location_city'] = null;
         }
 
@@ -291,6 +306,7 @@ class HrdHiringController extends Controller
 
         return redirect()->route('hrd.hiring')->with('success', 'Lowongan berhasil diperbarui.');
     }
+
 
     public function destroy(JobPosting $jobPosting)
     {
@@ -355,7 +371,8 @@ class HrdHiringController extends Controller
 
     private function categories(): array
     {
-        return [
+        $dbCats = \App\Models\Criterion::distinct('category')->pluck('category')->toArray();
+        return !empty($dbCats) ? $dbCats : [
             'Driver Ambulance',
             'Cleaning Service',
             'Asisten Keperawatan',
@@ -526,229 +543,375 @@ class HrdHiringController extends Controller
         $coreWeights = [];
         $secondaryWeights = [];
 
-        if (!empty($config)) {
-            // 1. Gender
-            if (isset($config['gender']) && $config['gender']['status'] !== 'nonaktif') {
-                $status = $config['gender']['status'];
-                $targetGender = $config['gender']['value'] ?? 'male';
-                $isMatch = ($targetGender === 'both' || $jobApplication->gender === $targetGender);
+        // Check if new dynamic criteria configuration exists
+        if (!empty($config) && isset($config['criteria'])) {
+            $totalScore = 0.0;
+            $totalWeight = 0.0;
+
+            foreach ($config['criteria'] as $c) {
+                $key = $c['key'];
+                $status = $c['status'] ?? 'nonaktif';
+                $weightPercent = (int) ($c['weight'] ?? 0);
+
+                if ($status === 'nonaktif' || $weightPercent <= 0) {
+                    continue;
+                }
+
+                $isMatch = false;
+                $gap = 0.0;
+                
+                // Get human readable label from Criterion model if possible
+                $critModel = \App\Models\Criterion::where('category', $posting->category)->where('key', $key)->first();
+                $criteriaLabel = $critModel ? $critModel->label : ucwords(str_replace('_', ' ', $key));
+
                 $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
+                $cand = 5;
+
+                if ($key === 'gender') {
+                    $targetGender = $c['value'] ?? 'both';
+                    $isMatch = ($targetGender === 'both' || $jobApplication->gender === $targetGender);
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                } 
+                elseif ($key === 'age') {
+                    $minAge = (int) ($c['value']['min'] ?? 18);
+                    $maxAge = (int) ($c['value']['max'] ?? 65);
+                    $age = $jobApplication->age;
+                    $isMatch = ($age !== null && $age >= $minAge && $age <= $maxAge);
+                    if ($isMatch) {
+                        $cand = 5;
+                    } else {
+                        if ($age === null) {
+                            $cand = 1;
+                        } else if ($age < $minAge) {
+                            $cand = max(1, 5 - ($minAge - $age));
+                        } else {
+                            $cand = max(1, 5 - ($age - $maxAge));
+                        }
+                    }
+                    $gap = $cand - $ideal;
+                } 
+                elseif ($key === 'education') {
+                    $minEducation = $c['value'] ?? 'SMA/SMK';
+                    $candRank = JobPosting::educationRank($jobApplication->education_level);
+                    $idealRank = JobPosting::educationRank($minEducation);
+                    
+                    $ideal = $idealRank;
+                    $cand = $candRank;
+                    $gap = $candRank - $idealRank;
+                } 
+                elseif ($key === 'experience') {
+                    $minExp = (int) ($c['value'] ?? 0);
+                    $candExp = (int) $jobApplication->experience_years;
+                    
+                    $ideal = $minExp;
+                    $cand = $candExp;
+                    $gap = $candExp - $minExp;
+                } 
+                elseif ($key === 'placement_ready') {
+                    $type = $c['value']['type'] ?? 'anywhere';
+                    if ($type === 'specific') {
+                        $targetCity = $c['value']['city'] ?? $posting->location_city;
+                        $applicantCity = $jobApplication->user->profile?->city ?? '';
+                        $isMatch = (!empty($targetCity) && strtolower(trim($applicantCity)) === strtolower(trim($targetCity)));
+                    } else {
+                        $isMatch = (bool) $jobApplication->placement_ready;
+                    }
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                } 
+                elseif ($key === 'major') {
+                    $allowedMajors = !empty($c['value']) ? array_map('trim', explode(',', strtolower($c['value']))) : [];
+                    $candMajor = trim(strtolower($jobApplication->major ?? ''));
+                    $isMatch = empty($allowedMajors) || in_array($candMajor, $allowedMajors);
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                } 
+                elseif ($key === 'placement_choices') {
+                    $allowedChoices = !empty($c['value']) ? array_map('trim', explode(',', strtolower($c['value']))) : [];
+                    $candChoice = trim(strtolower($jobApplication->placement_choice ?? ''));
+                    $isMatch = empty($allowedChoices) || in_array($candChoice, $allowedChoices);
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                } 
+                else {
+                    $isMatch = !empty($jobApplication->additional_documents[$key]);
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                }
+
                 $weight = $gapToWeight($gap);
 
                 $calculationDetails[] = [
-                    'criteria' => 'Jenis Kelamin',
+                    'criteria' => $criteriaLabel,
+                    'criteria_weight' => $weightPercent,
                     'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
                     'target' => $ideal,
                     'candidate' => $cand,
                     'gap' => $gap,
                     'weight' => $weight
                 ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+
+                if ($status === 'core') {
+                    $coreWeights[] = ($weightPercent / 100) * $weight;
+                } else {
+                    $secondaryWeights[] = ($weightPercent / 100) * $weight;
+                }
+                
+                $totalScore += ($weightPercent / 100) * $weight;
+                $totalWeight += $weightPercent;
             }
 
-            // 2. Usia
-            if (isset($config['age']) && $config['age']['status'] !== 'nonaktif') {
-                $status = $config['age']['status'];
-                $minAge = (int) ($config['age']['min'] ?? 18);
-                $maxAge = (int) ($config['age']['max'] ?? 65);
-                $age = $jobApplication->age;
-                $isMatch = ($age !== null && $age >= $minAge && $age <= $maxAge);
-                $ideal = 5;
-                if ($isMatch) {
-                    $cand = 5;
-                } else {
-                    if ($age === null) {
-                        $cand = 1;
-                    } else if ($age < $minAge) {
-                        $cand = max(1, 5 - ($minAge - $age));
+            $ncf = count($coreWeights) > 0 ? array_sum($coreWeights) : 5.0;
+            $nsf = count($secondaryWeights) > 0 ? array_sum($secondaryWeights) : 5.0;
+            
+            $nilaiAkhir = $totalWeight > 0 ? ($totalScore / ($totalWeight / 100)) : 5.0;
+            $calculatedScore = (int) round((($nilaiAkhir - 1.0) / 4.0) * 100);
+            $calculatedScore = max(0, min(100, $calculatedScore));
+        } else {
+            // Old fallback check
+            if (!empty($config)) {
+                // 1. Gender
+                if (isset($config['gender']) && $config['gender']['status'] !== 'nonaktif') {
+                    $status = $config['gender']['status'];
+                    $targetGender = $config['gender']['value'] ?? 'male';
+                    $isMatch = ($targetGender === 'both' || $jobApplication->gender === $targetGender);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Jenis Kelamin',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 2. Usia
+                if (isset($config['age']) && $config['age']['status'] !== 'nonaktif') {
+                    $status = $config['age']['status'];
+                    $minAge = (int) ($config['age']['min'] ?? 18);
+                    $maxAge = (int) ($config['age']['max'] ?? 65);
+                    $age = $jobApplication->age;
+                    $isMatch = ($age !== null && $age >= $minAge && $age <= $maxAge);
+                    $ideal = 5;
+                    if ($isMatch) {
+                        $cand = 5;
                     } else {
-                        $cand = max(1, 5 - ($age - $maxAge));
+                        if ($age === null) {
+                            $cand = 1;
+                        } else if ($age < $minAge) {
+                            $cand = max(1, 5 - ($minAge - $age));
+                        } else {
+                            $cand = max(1, 5 - ($age - $maxAge));
+                        }
+                    }
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Rentang Usia (' . $minAge . '-' . $maxAge . ' tahun)',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 3. Pendidikan
+                if (isset($config['education']) && $config['education']['status'] !== 'nonaktif') {
+                    $status = $config['education']['status'];
+                    $minEducation = $config['education']['value'] ?? 'SMA/SMK';
+                    $candRank = \App\Models\JobPosting::educationRank($jobApplication->education_level);
+                    $idealRank = \App\Models\JobPosting::educationRank($minEducation);
+                    $gap = $candRank - $idealRank;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Pendidikan Minimal (' . $minEducation . ')',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $idealRank,
+                        'candidate' => $candRank,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 4. AGD
+                if (isset($config['agd']) && $config['agd']['status'] !== 'nonaktif') {
+                    $status = $config['agd']['status'];
+                    $isMatch = ($jobApplication->has_agd && $jobApplication->agd_certificate_path);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Sertifikat AGD (Ambulance)',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 5. SIM C
+                if (isset($config['sim_c']) && $config['sim_c']['status'] !== 'nonaktif') {
+                    $status = $config['sim_c']['status'];
+                    $isMatch = (bool) $jobApplication->sim_c_path;
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Lisensi SIM C (Motor)',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 6. SIM B1
+                if (isset($config['sim_b1']) && $config['sim_b1']['status'] !== 'nonaktif') {
+                    $status = $config['sim_b1']['status'];
+                    $isMatch = (bool) $jobApplication->sim_b1_path;
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Lisensi SIM B1 (Mobil Berat)',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 7. Pengalaman
+                if (isset($config['experience']) && $config['experience']['status'] !== 'nonaktif') {
+                    $status = $config['experience']['status'];
+                    $minExp = (int) ($config['experience']['value'] ?? 0);
+                    $candExp = (int) $jobApplication->experience_years;
+                    $gap = $candExp - $minExp;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Pengalaman Kerja Minimal (' . $minExp . ' tahun)',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $minExp,
+                        'candidate' => $candExp,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 8. Placement Ready
+                if (isset($config['placement_ready']) && $config['placement_ready']['status'] !== 'nonaktif') {
+                    $status = $config['placement_ready']['status'];
+                    $isMatch = (bool) $jobApplication->placement_ready;
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Kesiapan Penempatan',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 9. Jurusan (Major)
+                if (isset($config['major']) && $config['major']['status'] !== 'nonaktif') {
+                    $status = $config['major']['status'];
+                    $allowedMajors = !empty($config['major']['value']) ? array_map('trim', explode(',', strtolower($config['major']['value']))) : [];
+                    $candMajor = trim(strtolower($jobApplication->major ?? ''));
+                    $isMatch = empty($allowedMajors) || in_array($candMajor, $allowedMajors);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Jurusan Pendidikan (' . ($config['major']['value'] ?? '') . ')',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 10. Placement Choices
+                if (isset($config['placement_choices']) && $config['placement_choices']['status'] !== 'nonaktif') {
+                    $status = $config['placement_choices']['status'];
+                    $allowedChoices = !empty($config['placement_choices']['value']) ? array_map('trim', explode(',', strtolower($config['placement_choices']['value']))) : [];
+                    $candChoice = trim(strtolower($jobApplication->placement_choice ?? ''));
+                    $isMatch = empty($allowedChoices) || in_array($candChoice, $allowedChoices);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Pilihan Kota Penempatan (' . ($config['placement_choices']['value'] ?? '') . ')',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 11. Custom / General Criteria (Dynamic)
+                $predefinedKeys = [
+                    'gender', 'age', 'education', 'major', 'experience', 
+                    'agd', 'sertifikat_agd_ambulance', 'sertifikat_agd',
+                    'sim_c', 'lisensi_sim_c_motor', 'sim_c_aktif',
+                    'sim_b1', 'lisensi_sim_b1_mobil_berat',
+                    'placement_ready', 'placement_choices',
+                    'medical_support', 'medical_terms', 
+                    'gardener_tech_understanding', 'gardener_nursery_skill', 'gardener_tools_skill'
+                ];
+                
+                $customDocs = [];
+                if (isset($config['criteria']) && is_array($config['criteria'])) {
+                    foreach ($config['criteria'] as $c) {
+                        if (($c['status'] ?? 'nonaktif') !== 'nonaktif' && !in_array($c['key'], $predefinedKeys)) {
+                            $customDocs[] = $c;
+                        }
                     }
                 }
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
 
-                $calculationDetails[] = [
-                    'criteria' => 'Rentang Usia (' . $minAge . '-' . $maxAge . ' tahun)',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 3. Pendidikan
-            if (isset($config['education']) && $config['education']['status'] !== 'nonaktif') {
-                $status = $config['education']['status'];
-                $minEducation = $config['education']['value'] ?? 'SMA/SMK';
-                $candRank = \App\Models\JobPosting::educationRank($jobApplication->education_level);
-                $idealRank = \App\Models\JobPosting::educationRank($minEducation);
-                $gap = $candRank - $idealRank;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Pendidikan Minimal (' . $minEducation . ')',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $idealRank,
-                    'candidate' => $candRank,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 4. AGD
-            if (isset($config['agd']) && $config['agd']['status'] !== 'nonaktif') {
-                $status = $config['agd']['status'];
-                $isMatch = ($jobApplication->has_agd && $jobApplication->agd_certificate_path);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Sertifikat AGD (Ambulance)',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 5. SIM C
-            if (isset($config['sim_c']) && $config['sim_c']['status'] !== 'nonaktif') {
-                $status = $config['sim_c']['status'];
-                $isMatch = (bool) $jobApplication->sim_c_path;
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Lisensi SIM C (Motor)',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 6. SIM B1
-            if (isset($config['sim_b1']) && $config['sim_b1']['status'] !== 'nonaktif') {
-                $status = $config['sim_b1']['status'];
-                $isMatch = (bool) $jobApplication->sim_b1_path;
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Lisensi SIM B1 (Mobil Berat)',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 7. Pengalaman
-            if (isset($config['experience']) && $config['experience']['status'] !== 'nonaktif') {
-                $status = $config['experience']['status'];
-                $minExp = (int) ($config['experience']['value'] ?? 0);
-                $candExp = (int) $jobApplication->experience_years;
-                $gap = $candExp - $minExp;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Pengalaman Kerja Minimal (' . $minExp . ' tahun)',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $minExp,
-                    'candidate' => $candExp,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 8. Placement Ready
-            if (isset($config['placement_ready']) && $config['placement_ready']['status'] !== 'nonaktif') {
-                $status = $config['placement_ready']['status'];
-                $isMatch = (bool) $jobApplication->placement_ready;
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Kesiapan Penempatan',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 9. Jurusan (Major)
-            if (isset($config['major']) && $config['major']['status'] !== 'nonaktif') {
-                $status = $config['major']['status'];
-                $allowedMajors = !empty($config['major']['value']) ? array_map('trim', explode(',', strtolower($config['major']['value']))) : [];
-                $candMajor = trim(strtolower($jobApplication->major ?? ''));
-                $isMatch = empty($allowedMajors) || in_array($candMajor, $allowedMajors);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Jurusan Pendidikan (' . ($config['major']['value'] ?? '') . ')',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 10. Placement Choices
-            if (isset($config['placement_choices']) && $config['placement_choices']['status'] !== 'nonaktif') {
-                $status = $config['placement_choices']['status'];
-                $allowedChoices = !empty($config['placement_choices']['value']) ? array_map('trim', explode(',', strtolower($config['placement_choices']['value']))) : [];
-                $candChoice = trim(strtolower($jobApplication->placement_choice ?? ''));
-                $isMatch = empty($allowedChoices) || in_array($candChoice, $allowedChoices);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Pilihan Kota Penempatan (' . ($config['placement_choices']['value'] ?? '') . ')',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 11. Custom Documents
-            if (isset($config['custom_documents']) && is_array($config['custom_documents'])) {
-                foreach ($config['custom_documents'] as $doc) {
+                foreach ($customDocs as $doc) {
                     $key = $doc['key'];
                     $status = $doc['status'];
+                    $label = $doc['label'] ?? ucwords(str_replace('_', ' ', $key));
                     $isMatch = !empty($jobApplication->additional_documents[$key]);
                     $ideal = 5;
                     $cand = $isMatch ? 5 : 1;
@@ -756,7 +919,107 @@ class HrdHiringController extends Controller
                     $weight = $gapToWeight($gap);
 
                     $calculationDetails[] = [
-                        'criteria' => 'Berkas Pendukung: ' . $doc['label'],
+                        'criteria' => $label,
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 12. Runner Medical Support
+                if (isset($config['medical_support']) && $config['medical_support']['status'] !== 'nonaktif') {
+                    $status = $config['medical_support']['status'];
+                    $isMatch = !empty($jobApplication->additional_documents['medical_support']);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Menguasai Kebutuhan Penunjang Medis',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 13. Runner Medical Terms
+                if (isset($config['medical_terms']) && $config['medical_terms']['status'] !== 'nonaktif') {
+                    $status = $config['medical_terms']['status'];
+                    $isMatch = !empty($jobApplication->additional_documents['medical_terms']);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Mengetahui Istilah-Istilah Medis',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 14. Gardener Tech Understanding
+                if (isset($config['gardener_tech_understanding']) && $config['gardener_tech_understanding']['status'] !== 'nonaktif') {
+                    $status = $config['gardener_tech_understanding']['status'];
+                    $isMatch = !empty($jobApplication->additional_documents['gardener_tech_understanding']);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Memahami Teknis Pertumbuhan Tanaman',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 15. Gardener Nursery Skill
+                if (isset($config['gardener_nursery_skill']) && $config['gardener_nursery_skill']['status'] !== 'nonaktif') {
+                    $status = $config['gardener_nursery_skill']['status'];
+                    $isMatch = !empty($jobApplication->additional_documents['gardener_nursery_skill']);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Mampu Mengelola Pembibitan Tanaman',
+                        'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
+                        'target' => $ideal,
+                        'candidate' => $cand,
+                        'gap' => $gap,
+                        'weight' => $weight
+                    ];
+                    if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
+                }
+
+                // 16. Gardener Tools Skill
+                if (isset($config['gardener_tools_skill']) && $config['gardener_tools_skill']['status'] !== 'nonaktif') {
+                    $status = $config['gardener_tools_skill']['status'];
+                    $isMatch = !empty($jobApplication->additional_documents['gardener_tools_skill']);
+                    $ideal = 5;
+                    $cand = $isMatch ? 5 : 1;
+                    $gap = $cand - $ideal;
+                    $weight = $gapToWeight($gap);
+
+                    $calculationDetails[] = [
+                        'criteria' => 'Menguasai Skill Penggunaan Alat-Alat Teknis',
                         'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
                         'target' => $ideal,
                         'candidate' => $cand,
@@ -767,120 +1030,20 @@ class HrdHiringController extends Controller
                 }
             }
 
-            // 12. Runner Medical Support
-            if (isset($config['medical_support']) && $config['medical_support']['status'] !== 'nonaktif') {
-                $status = $config['medical_support']['status'];
-                $isMatch = !empty($jobApplication->additional_documents['medical_support']);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Menguasai Kebutuhan Penunjang Medis',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 13. Runner Medical Terms
-            if (isset($config['medical_terms']) && $config['medical_terms']['status'] !== 'nonaktif') {
-                $status = $config['medical_terms']['status'];
-                $isMatch = !empty($jobApplication->additional_documents['medical_terms']);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Mengetahui Istilah-Istilah Medis',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 14. Gardener Tech Understanding
-            if (isset($config['gardener_tech_understanding']) && $config['gardener_tech_understanding']['status'] !== 'nonaktif') {
-                $status = $config['gardener_tech_understanding']['status'];
-                $isMatch = !empty($jobApplication->additional_documents['gardener_tech_understanding']);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Memahami Teknis Pertumbuhan Tanaman',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 15. Gardener Nursery Skill
-            if (isset($config['gardener_nursery_skill']) && $config['gardener_nursery_skill']['status'] !== 'nonaktif') {
-                $status = $config['gardener_nursery_skill']['status'];
-                $isMatch = !empty($jobApplication->additional_documents['gardener_nursery_skill']);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Mampu Mengelola Pembibitan Tanaman',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
-
-            // 16. Gardener Tools Skill
-            if (isset($config['gardener_tools_skill']) && $config['gardener_tools_skill']['status'] !== 'nonaktif') {
-                $status = $config['gardener_tools_skill']['status'];
-                $isMatch = !empty($jobApplication->additional_documents['gardener_tools_skill']);
-                $ideal = 5;
-                $cand = $isMatch ? 5 : 1;
-                $gap = $cand - $ideal;
-                $weight = $gapToWeight($gap);
-
-                $calculationDetails[] = [
-                    'criteria' => 'Menguasai Skill Penggunaan Alat-Alat Teknis',
-                    'factor_type' => $status === 'core' ? 'Core Factor' : 'Secondary Factor',
-                    'target' => $ideal,
-                    'candidate' => $cand,
-                    'gap' => $gap,
-                    'weight' => $weight
-                ];
-                if ($status === 'core') $coreWeights[] = $weight; else $secondaryWeights[] = $weight;
-            }
+            $ncf = count($coreWeights) > 0 ? array_sum($coreWeights) / count($coreWeights) : 5.0;
+            $nsf = count($secondaryWeights) > 0 ? array_sum($secondaryWeights) / count($secondaryWeights) : 5.0;
+            $nilaiAkhir = (0.6 * $ncf) + (0.4 * $nsf);
+            $calculatedScore = (int) round((($nilaiAkhir - 1.0) / 4.0) * 100);
+            $calculatedScore = max(0, min(100, $calculatedScore));
         }
-
-        $ncf = count($coreWeights) > 0 ? array_sum($coreWeights) / count($coreWeights) : 5.0;
-        $nsf = count($secondaryWeights) > 0 ? array_sum($secondaryWeights) / count($secondaryWeights) : 5.0;
-        $nilaiAkhir = (0.6 * $ncf) + (0.4 * $nsf);
-        $calculatedScore = (int) round((($nilaiAkhir - 1.0) / 4.0) * 100);
-        $calculatedScore = max(0, min(100, $calculatedScore));
 
         return view('hrd.hiring.application_pdf', [
             'application' => $jobApplication,
             'posting' => $posting,
             'profile' => $profile,
             'calculationDetails' => $calculationDetails,
-            'ncf' => $ncf,
-            'nsf' => $nsf,
+            'ncf' => isset($ncf) ? $ncf : 5.0,
+            'nsf' => isset($nsf) ? $nsf : 5.0,
             'nilaiAkhir' => $nilaiAkhir,
             'calculatedScore' => $calculatedScore,
         ]);

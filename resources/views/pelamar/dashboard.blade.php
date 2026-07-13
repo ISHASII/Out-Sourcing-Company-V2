@@ -7,19 +7,17 @@
 
     <!-- Hero / Welcome Banner -->
     <div class="bg-gradient-to-r from-[#003d7c] to-[#005fb8] rounded-3xl p-8 relative overflow-hidden shadow-xl">
-        <div class="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/4"></div>
-        <div class="absolute bottom-0 left-0 w-48 h-48 bg-blue-400 opacity-10 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4"></div>
         
         <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="text-white">
-                <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-bold tracking-wider uppercase mb-3 backdrop-blur-sm border border-white/30">Pelamar Portal</span>
+                <span class="inline-block px-3 py-1 bg-white/20 rounded-full text-xs font-bold tracking-wider uppercase mb-3 border border-white/30">Pelamar Portal</span>
                 <h2 class="text-3xl font-extrabold mb-2">Halo, {{ Auth::user()->name }}!</h2>
                 <p class="text-blue-100 max-w-xl text-sm leading-relaxed">Selamat datang di Portal Rekrutmen PT. Unggul Cipta Indah. Jelajahi peluang karir terbaru dan tingkatkan wawasanmu melalui artikel dan sesi berbagi seputar dunia kerja.</p>
             </div>
             
             <!-- Quick Stats -->
             <div class="flex gap-4">
-                <div class="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl text-center min-w-[100px]">
+                <div class="bg-white/15 border border-white/20 p-4 rounded-2xl text-center min-w-[100px]">
                     <h4 class="text-2xl font-black text-white">{{ $activeApplicationsCount }}</h4>
                     <p class="text-[10px] text-blue-100 uppercase tracking-widest mt-1">Lamaran Aktif</p>
                 </div>
@@ -52,10 +50,18 @@
                             <p class="text-xs text-slate-500 mt-1 mb-4">PT. Unggul Cipta Indah • {{ $posting->location_city ?? 'Jakarta' }}</p>
                         </div>
                         <div class="flex items-center justify-between border-t border-slate-100 pt-4 mt-auto">
-                            <span class="text-xs font-semibold text-slate-400 flex items-center gap-1">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                {{ $posting->created_at->diffForHumans() }}
-                            </span>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs font-semibold text-slate-400 flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    {{ $posting->created_at->diffForHumans() }}
+                                </span>
+                                @if($posting->active_until)
+                                    <span class="text-[10px] font-bold text-rose-600 flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                        Batas: {{ $posting->active_until->format('d M Y') }}
+                                    </span>
+                                @endif
+                            </div>
                             <a href="{{ route('pelamar.lowongan.apply', $posting) }}" class="text-xs font-bold text-white bg-[#003d7c] hover:bg-blue-800 px-4 py-2 rounded-lg transition-colors">Lamar</a>
                         </div>
                     </div>

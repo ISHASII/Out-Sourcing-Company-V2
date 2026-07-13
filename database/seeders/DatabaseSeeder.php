@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\UserProfile;
 use App\Models\JobPosting;
 use App\Models\JobApplication;
+use App\Models\Criterion;
 use Illuminate\Database\Seeder;
 use Carbon\Carbon;
 
@@ -16,6 +17,83 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Clear old criteria
+        Criterion::truncate();
+
+        // 1. DRIVER AMBULANCE CRITERIA
+        $driverCriteria = [
+            ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
+            ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 25, 'max_default' => 35]],
+            ['key' => 'education', 'label' => 'Pendidikan Minimal', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['SMA/SMK', 'D3', 'S1', 'S2', 'S3']]],
+            ['key' => 'experience', 'label' => 'Pengalaman Minimum', 'type' => 'number', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => ['unit' => 'Tahun', 'min' => 0]],
+            ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
+            ['key' => 'sertifikat_agd_ambulance', 'label' => 'Sertifikat AGD (Ambulance)', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null],
+            ['key' => 'lisensi_sim_c_motor', 'label' => 'Lisensi SIM C (Motor)', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null],
+            ['key' => 'lisensi_sim_b1_mobil_berat', 'label' => 'Lisensi SIM B1 (Mobil Berat)', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 30, 'config' => null]
+        ];
+        foreach ($driverCriteria as $index => $c) {
+            Criterion::create(array_merge($c, ['category' => 'Driver Ambulance', 'sort_order' => $index]));
+        }
+
+        // 2. ASISTEN KEPERAWATAN CRITERIA
+        $nurseCriteria = [
+            ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
+            ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 25, 'max_default' => 65]],
+            ['key' => 'education', 'label' => 'Pendidikan Minimal', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['SMA/SMK', 'D3', 'S1', 'S2', 'S3']]],
+            ['key' => 'experience', 'label' => 'Pengalaman Minimum', 'type' => 'number', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => ['unit' => 'Tahun', 'min' => 0]],
+            ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
+            ['key' => 'major', 'label' => 'Jurusan', 'type' => 'text', 'default_status' => 'core', 'default_weight' => 10, 'config' => null],
+            ['key' => 'str_file', 'label' => 'Surat Tanda Registrasi (STR) / STRTK', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 20, 'config' => null],
+            ['key' => 'sertifikat_kompetensi', 'label' => 'Sertifikat Kompetensi Keperawatan', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 20, 'config' => null]
+        ];
+        foreach ($nurseCriteria as $index => $c) {
+            Criterion::create(array_merge($c, ['category' => 'Asisten Keperawatan', 'sort_order' => $index]));
+        }
+
+        // 3. CLEANING SERVICE CRITERIA
+        $csCriteria = [
+            ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
+            ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['min_default' => 25, 'max_default' => 65]],
+            ['key' => 'education', 'label' => 'Pendidikan Minimal', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['options' => ['SMA/SMK', 'D3', 'S1', 'S2', 'S3']]],
+            ['key' => 'experience', 'label' => 'Pengalaman Minimum', 'type' => 'number', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['unit' => 'Tahun', 'min' => 0]],
+            ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
+            ['key' => 'placement_choices', 'label' => 'Pilihan Penempatan', 'type' => 'text', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
+            ['key' => 'sim_c_aktif', 'label' => 'SIM C Aktif', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null]
+        ];
+        foreach ($csCriteria as $index => $c) {
+            Criterion::create(array_merge($c, ['category' => 'Cleaning Service', 'sort_order' => $index]));
+        }
+
+        // 4. RUNNER CRITERIA
+        $runnerCriteria = [
+            ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
+            ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 23, 'max_default' => 35]],
+            ['key' => 'education', 'label' => 'Pendidikan Minimal', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['SMA/SMK', 'D3', 'S1', 'S2', 'S3']]],
+            ['key' => 'experience', 'label' => 'Pengalaman Minimum', 'type' => 'number', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['unit' => 'Tahun', 'min' => 0]],
+            ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
+            ['key' => 'major', 'label' => 'Jurusan', 'type' => 'text', 'default_status' => 'core', 'default_weight' => 10, 'config' => null],
+            ['key' => 'medical_support', 'label' => 'Dukungan Medis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
+            ['key' => 'medical_terms', 'label' => 'Istilah-istilah Medis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null]
+        ];
+        foreach ($runnerCriteria as $index => $c) {
+            Criterion::create(array_merge($c, ['category' => 'Runner', 'sort_order' => $index]));
+        }
+
+        // 5. GARDENER CRITERIA
+        $gardenerCriteria = [
+            ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
+            ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 25, 'max_default' => 40]],
+            ['key' => 'education', 'label' => 'Pendidikan Minimal', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['SMA/SMK', 'D3', 'S1', 'S2', 'S3']]],
+            ['key' => 'experience', 'label' => 'Pengalaman Minimum', 'type' => 'number', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['unit' => 'Tahun', 'min' => 0]],
+            ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
+            ['key' => 'gardener_tech_understanding', 'label' => 'Memahami Teknis Pertumbuhan Tanaman', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
+            ['key' => 'gardener_nursery_skill', 'label' => 'Mampu Mengelola Pembibitan Tanaman', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
+            ['key' => 'gardener_tools_skill', 'label' => 'Menguasai Skill Penggunaan Alat-Alat Teknis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null]
+        ];
+        foreach ($gardenerCriteria as $index => $c) {
+            Criterion::create(array_merge($c, ['category' => 'Gardener', 'sort_order' => $index]));
+        }
+
         // ----------------------------------------------------
         // 1. CREATE CORE ACCOUNTS
         // ----------------------------------------------------

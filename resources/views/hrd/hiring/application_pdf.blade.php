@@ -341,12 +341,13 @@
             <thead>
                 <tr>
                     <th style="width: 5%">No</th>
-                    <th style="width: 45%">Kriteria / Parameter Kualifikasi</th>
-                    <th style="width: 15%">Jenis Faktor</th>
+                    <th style="width: 35%">Kriteria / Parameter Kualifikasi</th>
+                    <th style="width: 12%">Jenis Faktor</th>
+                    <th style="text-align: center; width: 13%">Bobot Kriteria</th>
                     <th style="text-align: center; width: 10%">Target (Ideal)</th>
                     <th style="text-align: center; width: 10%">Kandidat</th>
                     <th style="text-align: center; width: 8%">GAP</th>
-                    <th style="text-align: center; width: 7%">Bobot</th>
+                    <th style="text-align: center; width: 7%">Bobot GAP</th>
                 </tr>
             </thead>
             <tbody>
@@ -360,6 +361,9 @@
                             @else
                                 <span class="badge-secondary">Secondary</span>
                             @endif
+                        </td>
+                        <td style="text-align: center; font-weight: 700;">
+                            {{ isset($detail['criteria_weight']) ? $detail['criteria_weight'] . '%' : '-' }}
                         </td>
                         <td style="text-align: center; font-weight: 700;">{{ $detail['target'] }}</td>
                         <td style="text-align: center; font-weight: 700;">{{ $detail['candidate'] }}</td>

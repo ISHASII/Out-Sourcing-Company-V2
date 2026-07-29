@@ -60,21 +60,46 @@ class JobPosting extends Model
 
     public function calculateSpkScore(JobApplication $application): array
     {
+        $detailed = $this->calculateSpkScoreDetailed($application);
+        return [
+            'is_priority' => $detailed['is_priority'],
+            'matching_score' => $detailed['matching_score'],
+        ];
+    }
+
+    public function calculateSpkScoreDetailed(JobApplication $application): array
+    {
         $config = $this->requirements_config;
 
         if (empty($config) || !isset($config['criteria'])) {
             $isPriority = $this->meetsRequirements($application);
             return [
                 'is_priority' => $isPriority,
-                'matching_score' => $isPriority ? 100 : 50
+                'matching_score' => $isPriority ? 100 : 50,
+                'criteria_details' => [],
+                'ncf' => 0,
+                'nsf' => 0,
+                'cf_weight_percent' => 0,
+                'sf_weight_percent' => 0,
+                'nilai_akhir' => $isPriority ? 5.0 : 2.5,
+                'total_score_raw' => 0,
             ];
         }
 
         $isPriority = true;
         $totalScore = 0.0;
         $totalWeight = 0.0;
+        $criteriaDetails = [];
 
-        // Langkah 3: Konversi Gap ke Bobot Nilai (Kusrini, 2007)
+        // Core & Secondary aggregators for NCF/NSF display
+        $coreBobotSum = 0.0;
+        $coreCount = 0;
+        $secondaryBobotSum = 0.0;
+        $secondaryCount = 0;
+        $cfWeightPercent = 0;
+        $sfWeightPercent = 0;
+
+        // Langkah 3: Konversi Gap ke Bobot Nilai
         $gapToWeight = function(float $gap): float {
             $map = [
                 '0'  => 5.0,
@@ -93,6 +118,7 @@ class JobPosting extends Model
 
         foreach ($config['criteria'] as $c) {
             $key = $c['key'];
+            $label = $c['label'] ?? ucwords(str_replace('_', ' ', $key));
             $status = $c['status'] ?? 'nonaktif';
             $weightPercent = (int) ($c['weight'] ?? 0);
             
@@ -102,11 +128,16 @@ class JobPosting extends Model
 
             $isMatch = false;
             $gap = 0.0;
+            $standardDisplay = '-';
+            $applicantDisplay = '-';
 
             if ($key === 'gender') {
                 $targetGender = $c['value'] ?? 'both';
                 $isMatch = ($targetGender === 'both' || $application->gender === $targetGender);
                 $gap = $isMatch ? 0.0 : -4.0;
+                $genderLabels = ['male' => 'Pria', 'female' => 'Wanita', 'both' => 'Semua'];
+                $standardDisplay = $genderLabels[$targetGender] ?? $targetGender;
+                $applicantDisplay = $application->gender === 'male' ? 'Pria' : 'Wanita';
             } 
             elseif ($key === 'age') {
                 $minAge = (int) ($c['value']['min'] ?? 18);
@@ -124,6 +155,8 @@ class JobPosting extends Model
                         $gap = -max(1, min(4, $age - $maxAge));
                     }
                 }
+                $standardDisplay = $minAge . '–' . $maxAge . ' thn';
+                $applicantDisplay = $age !== null ? $age . ' thn' : 'N/A';
             } 
             elseif ($key === 'education') {
                 $minEducation = $c['value'] ?? 'SMA/SMK';
@@ -131,12 +164,16 @@ class JobPosting extends Model
                 $idealRank = self::educationRank($minEducation);
                 $isMatch = ($candRank >= $idealRank);
                 $gap = $candRank - $idealRank;
+                $standardDisplay = $minEducation;
+                $applicantDisplay = $application->education_level ?? 'N/A';
             } 
             elseif ($key === 'experience') {
                 $minExp = (int) ($c['value'] ?? 0);
                 $candExp = (int) $application->experience_years;
                 $isMatch = ($candExp >= $minExp);
                 $gap = $candExp - $minExp;
+                $standardDisplay = 'Min. ' . $minExp . ' thn';
+                $applicantDisplay = $candExp . ' thn';
             } 
             elseif ($key === 'placement_ready') {
                 $type = $c['value']['type'] ?? 'anywhere';
@@ -144,8 +181,12 @@ class JobPosting extends Model
                     $targetCity = $c['value']['city'] ?? $this->location_city;
                     $applicantCity = $application->user->profile?->city ?? '';
                     $isMatch = (!empty($targetCity) && strtolower(trim($applicantCity)) === strtolower(trim($targetCity)));
+                    $standardDisplay = $targetCity ?? 'Kota tertentu';
+                    $applicantDisplay = $applicantCity ?: 'N/A';
                 } else {
                     $isMatch = (bool) $application->placement_ready;
+                    $standardDisplay = 'Siap dimana saja';
+                    $applicantDisplay = $application->placement_ready ? 'Siap' : 'Tidak';
                 }
                 $gap = $isMatch ? 0.0 : -4.0;
             } 
@@ -154,17 +195,23 @@ class JobPosting extends Model
                 $candMajor = trim(strtolower($application->major ?? ''));
                 $isMatch = empty($allowedMajors) || in_array($candMajor, $allowedMajors);
                 $gap = $isMatch ? 0.0 : -4.0;
+                $standardDisplay = $c['value'] ?? 'Semua';
+                $applicantDisplay = $application->major ?? 'N/A';
             } 
             elseif ($key === 'placement_choices') {
                 $allowedChoices = !empty($c['value']) ? array_map('trim', explode(',', strtolower($c['value']))) : [];
                 $candChoice = trim(strtolower($application->placement_choice ?? ''));
                 $isMatch = empty($allowedChoices) || in_array($candChoice, $allowedChoices);
                 $gap = $isMatch ? 0.0 : -4.0;
+                $standardDisplay = $c['value'] ?? 'Semua';
+                $applicantDisplay = $application->placement_choice ?? 'N/A';
             } 
             else {
                 // Documents & Custom checkbox check
                 $isMatch = !empty($application->additional_documents[$key]);
                 $gap = $isMatch ? 0.0 : -4.0;
+                $standardDisplay = 'Wajib upload';
+                $applicantDisplay = $isMatch ? 'Ada' : 'Tidak ada';
             }
 
             // Core Factor requirement check
@@ -174,10 +221,38 @@ class JobPosting extends Model
                 }
             }
 
-            $weight = $gapToWeight($gap);
-            $totalScore += ($weightPercent / 100) * $weight;
+            $bobotNilai = $gapToWeight($gap);
+            $totalScore += ($weightPercent / 100) * $bobotNilai;
             $totalWeight += $weightPercent;
+
+            // Aggregate for NCF / NSF
+            if ($status === 'core') {
+                $coreBobotSum += $bobotNilai;
+                $coreCount++;
+                $cfWeightPercent += $weightPercent;
+            } else {
+                $secondaryBobotSum += $bobotNilai;
+                $secondaryCount++;
+                $sfWeightPercent += $weightPercent;
+            }
+
+            $criteriaDetails[] = [
+                'key' => $key,
+                'label' => $label,
+                'status' => $status,
+                'weight' => $weightPercent,
+                'standard_display' => $standardDisplay,
+                'applicant_display' => $applicantDisplay,
+                'is_match' => $isMatch,
+                'gap' => (int) round($gap),
+                'bobot_nilai' => $bobotNilai,
+            ];
         }
+
+        // NCF = rata-rata bobot nilai kriteria Core
+        $ncf = $coreCount > 0 ? round($coreBobotSum / $coreCount, 2) : 0;
+        // NSF = rata-rata bobot nilai kriteria Secondary
+        $nsf = $secondaryCount > 0 ? round($secondaryBobotSum / $secondaryCount, 2) : 0;
 
         // Normalize matching score to 0 - 100
         // Nilai Akhir is a weighted sum (scale 1.0 - 5.0)
@@ -188,6 +263,13 @@ class JobPosting extends Model
         return [
             'is_priority' => $isPriority,
             'matching_score' => $matchingScore,
+            'criteria_details' => $criteriaDetails,
+            'ncf' => $ncf,
+            'nsf' => $nsf,
+            'cf_weight_percent' => $cfWeightPercent,
+            'sf_weight_percent' => $sfWeightPercent,
+            'nilai_akhir' => round($nilaiAkhir, 4),
+            'total_score_raw' => round($totalScore, 4),
         ];
     }
 

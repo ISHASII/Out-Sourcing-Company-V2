@@ -6,6 +6,13 @@
     <div class="space-y-6 animate-fade-in" 
          x-data="{ 
             activeApplicant: null,
+            activeSpkDetail: null,
+            activeSpkName: '',
+            spkDetailsMap: {{ json_encode($spkDetailsMap, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) }},
+            showSpkDetail(appId, name) {
+                this.activeSpkDetail = this.spkDetailsMap[appId] || null;
+                this.activeSpkName = name;
+            },
             customDocsConfig: {{ json_encode(
                 collect($posting->requirements_config['criteria'] ?? [])
                     ->filter(function($c) {
@@ -128,6 +135,157 @@
                             {!! $getConfigLabel('placement_ready') !!}
                         </div>
                     </div>
+
+                    @php
+                        $criteriaList = $posting->requirements_config['criteria'] ?? [];
+                        $activeCriteria = collect($criteriaList)->filter(fn($c) => ($c['status'] ?? 'nonaktif') !== 'nonaktif' && ($c['weight'] ?? 0) > 0);
+                        $coreCriteria = $activeCriteria->where('status', 'core');
+                        $secondaryCriteria = $activeCriteria->where('status', 'secondary');
+                        $totalCfWeight = $coreCriteria->sum('weight');
+                        $totalSfWeight = $secondaryCriteria->sum('weight');
+                    @endphp
+
+                    {{-- Section A: Tabel Pembobotan Kriteria --}}
+                    @if($activeCriteria->isNotEmpty())
+                    <div class="mt-6 pt-5 border-t border-slate-200/80">
+                        <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            Tabel Pembobotan Kriteria Aktif
+                        </h5>
+                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                            <table class="w-full text-xs">
+                                <thead class="bg-slate-100 text-slate-500">
+                                    <tr>
+                                        <th class="px-3 py-2.5 text-left font-bold uppercase tracking-wider">No</th>
+                                        <th class="px-3 py-2.5 text-left font-bold uppercase tracking-wider">Kriteria</th>
+                                        <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Tipe</th>
+                                        <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Bobot (%)</th>
+                                        <th class="px-3 py-2.5 text-left font-bold uppercase tracking-wider">Standar Acuan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    @foreach($activeCriteria as $idx => $c)
+                                        @php
+                                            $standardText = '-';
+                                            if ($c['key'] === 'gender') {
+                                                $gLabels = ['male' => 'Pria', 'female' => 'Wanita', 'both' => 'Semua'];
+                                                $standardText = $gLabels[$c['value'] ?? 'both'] ?? '-';
+                                            } elseif ($c['key'] === 'age') {
+                                                $standardText = ($c['value']['min'] ?? 18) . ' – ' . ($c['value']['max'] ?? 65) . ' tahun';
+                                            } elseif ($c['key'] === 'education') {
+                                                $standardText = 'Min. ' . ($c['value'] ?? 'SMA/SMK');
+                                            } elseif ($c['key'] === 'experience') {
+                                                $standardText = 'Min. ' . ($c['value'] ?? 0) . ' tahun';
+                                            } elseif ($c['key'] === 'placement_ready') {
+                                                $standardText = ($c['value']['type'] ?? 'anywhere') === 'specific' ? ($c['value']['city'] ?? 'Kota tertentu') : 'Siap dimana saja';
+                                            } elseif ($c['key'] === 'major') {
+                                                $standardText = $c['value'] ?? 'Semua jurusan';
+                                            } elseif ($c['key'] === 'placement_choices') {
+                                                $standardText = $c['value'] ?? 'Semua lokasi';
+                                            } else {
+                                                $standardText = 'Dokumen wajib upload';
+                                            }
+                                        @endphp
+                                        <tr class="hover:bg-slate-50/50">
+                                            <td class="px-3 py-2 text-slate-500 font-semibold">{{ $loop->iteration }}</td>
+                                            <td class="px-3 py-2 font-semibold text-slate-700">{{ $c['label'] ?? ucwords(str_replace('_', ' ', $c['key'])) }}</td>
+                                            <td class="px-3 py-2 text-center">
+                                                @if($c['status'] === 'core')
+                                                    <span class="text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100/50">Core</span>
+                                                @else
+                                                    <span class="text-[9px] font-extrabold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">Secondary</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-3 py-2 text-center font-bold text-slate-800">{{ $c['weight'] ?? 0 }}%</td>
+                                            <td class="px-3 py-2 text-slate-600">{{ $standardText }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                                <tfoot class="bg-slate-50 border-t border-slate-200">
+                                    <tr>
+                                        <td colspan="3" class="px-3 py-2 text-right font-bold text-slate-600 uppercase text-[10px] tracking-wider">Total Bobot</td>
+                                        <td class="px-3 py-2 text-center font-extrabold text-slate-800">{{ $activeCriteria->sum('weight') }}%</td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Section B: Rumus SPK Profile Matching --}}
+                    <div class="mt-6 pt-5 border-t border-slate-200/80">
+                        <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.871 4A17.926 17.926 0 003 12c0 2.874.673 5.59 1.871 8m14.13 0A17.926 17.926 0 0021 12a17.926 17.926 0 00-1.871-8M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 01.553-.894L9 2m0 18l6-3m-6 3V2m6 18l5.447-2.724A1 1 0 0021 16.382V5.618a1 1 0 00-.553-.894L15 2m0 18V2m0 0L9 5"/></svg>
+                            Rumus SPK — Profile Matching
+                        </h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="bg-blue-50/60 border border-blue-100 rounded-xl p-4 space-y-2.5">
+                                <div class="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Perhitungan GAP</div>
+                                <div class="bg-white rounded-lg px-3 py-2 border border-blue-100/50 text-xs font-mono text-slate-700">
+                                    GAP = Nilai Profil Pelamar − Nilai Profil Acuan
+                                </div>
+                            </div>
+                            <div class="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 space-y-2.5">
+                                <div class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Nilai Core Factor (NCF)</div>
+                                <div class="bg-white rounded-lg px-3 py-2 border border-emerald-100/50 text-xs font-mono text-slate-700">
+                                    NCF = Σ(Bobot Nilai Core) / Jumlah Kriteria Core
+                                </div>
+                                <div class="text-[10px] text-emerald-700 font-semibold">
+                                    Jumlah Kriteria Core: {{ $coreCriteria->count() }} · Total Bobot: {{ $totalCfWeight }}%
+                                </div>
+                            </div>
+                            <div class="bg-amber-50/60 border border-amber-100 rounded-xl p-4 space-y-2.5">
+                                <div class="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Nilai Secondary Factor (NSF)</div>
+                                <div class="bg-white rounded-lg px-3 py-2 border border-amber-100/50 text-xs font-mono text-slate-700">
+                                    NSF = Σ(Bobot Nilai Secondary) / Jumlah Kriteria Secondary
+                                </div>
+                                <div class="text-[10px] text-amber-700 font-semibold">
+                                    Jumlah Kriteria Secondary: {{ $secondaryCriteria->count() }} · Total Bobot: {{ $totalSfWeight }}%
+                                </div>
+                            </div>
+                            <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 space-y-2.5">
+                                <div class="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Nilai Akhir</div>
+                                <div class="bg-white rounded-lg px-3 py-2 border border-indigo-100/50 text-xs font-mono text-slate-700">
+                                    Nilai Akhir = Σ(Bobot% × Bobot_Nilai) / 100
+                                </div>
+                                <div class="bg-white rounded-lg px-3 py-2 border border-indigo-100/50 text-xs font-mono text-slate-700">
+                                    Skor (%) = ((Nilai Akhir − 1) / 4) × 100
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Section C: Tabel Referensi Konversi GAP → Bobot Nilai --}}
+                    <div class="mt-6 pt-5 border-t border-slate-200/80">
+                        <h5 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                            Tabel Konversi GAP → Bobot Nilai <span class="text-[10px] font-normal text-slate-400 normal-case tracking-normal"></span>
+                        </h5>
+                        <div class="overflow-x-auto rounded-xl border border-slate-200 max-w-md">
+                            <table class="w-full text-xs">
+                                <thead class="bg-slate-100 text-slate-500">
+                                    <tr>
+                                        <th class="px-3 py-2 text-center font-bold uppercase tracking-wider">Selisih GAP</th>
+                                        <th class="px-3 py-2 text-center font-bold uppercase tracking-wider">Bobot Nilai</th>
+                                        <th class="px-3 py-2 text-left font-bold uppercase tracking-wider">Keterangan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100 text-center">
+                                    <tr class="bg-emerald-50/30"><td class="px-3 py-1.5 font-bold text-slate-700">0</td><td class="px-3 py-1.5 font-extrabold text-emerald-700">5.0</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi sesuai</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">1</td><td class="px-3 py-1.5 font-bold text-slate-700">4.5</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kelebihan 1 level</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">-1</td><td class="px-3 py-1.5 font-bold text-slate-700">4.0</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kurang 1 level</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">2</td><td class="px-3 py-1.5 font-bold text-slate-700">3.5</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kelebihan 2 level</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">-2</td><td class="px-3 py-1.5 font-bold text-slate-700">3.0</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kurang 2 level</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">3</td><td class="px-3 py-1.5 font-bold text-slate-700">2.5</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kelebihan 3 level</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">-3</td><td class="px-3 py-1.5 font-bold text-slate-700">2.0</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kurang 3 level</td></tr>
+                                    <tr><td class="px-3 py-1.5 font-bold text-slate-700">4</td><td class="px-3 py-1.5 font-bold text-slate-700">1.5</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kelebihan 4 level</td></tr>
+                                    <tr class="bg-rose-50/30"><td class="px-3 py-1.5 font-bold text-slate-700">-4</td><td class="px-3 py-1.5 font-bold text-rose-600">1.0</td><td class="px-3 py-1.5 text-left text-slate-500">Kompetensi kurang 4 level</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                 </details>
             </div>
         </div>
@@ -1137,4 +1295,181 @@
             </div>
         </div>
     </div>
+
+    {{-- SPK Detail Modal --}}
+    <div x-show="activeSpkDetail" x-cloak
+         class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto py-8 px-4"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0">
+        <div class="fixed inset-0 bg-slate-900/60" @click="activeSpkDetail = null"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl border border-slate-200 overflow-hidden"
+             @click.away="activeSpkDetail = null">
+            {{-- Modal Header --}}
+            <div class="bg-gradient-to-r from-[#002855] to-[#004b93] px-6 py-5 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold tracking-tight">Detail Perhitungan SPK</h3>
+                        <p class="text-blue-200 text-xs mt-1">Pelamar: <strong class="text-white" x-text="activeSpkName"></strong></p>
+                    </div>
+                    <button @click="activeSpkDetail = null" class="p-2 hover:bg-white/10 rounded-xl transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+
+                {{-- Step 1: Tabel Perhitungan GAP --}}
+                <div>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-extrabold flex items-center justify-center">1</span>
+                        Perhitungan GAP & Konversi Bobot Nilai
+                    </h4>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-xs">
+                            <thead class="bg-slate-100 text-slate-500">
+                                <tr>
+                                    <th class="px-3 py-2.5 text-left font-bold uppercase tracking-wider">No</th>
+                                    <th class="px-3 py-2.5 text-left font-bold uppercase tracking-wider">Kriteria</th>
+                                    <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Tipe</th>
+                                    <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Bobot (%)</th>
+                                    <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Standar</th>
+                                    <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Pelamar</th>
+                                    <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">GAP</th>
+                                    <th class="px-3 py-2.5 text-center font-bold uppercase tracking-wider">Bobot Nilai</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="(item, idx) in (activeSpkDetail ? activeSpkDetail.criteria_details : [])" :key="idx">
+                                    <tr class="hover:bg-slate-50/50">
+                                        <td class="px-3 py-2 text-slate-500 font-semibold" x-text="idx + 1"></td>
+                                        <td class="px-3 py-2 font-semibold text-slate-700" x-text="item.label"></td>
+                                        <td class="px-3 py-2 text-center">
+                                            <span x-show="item.status === 'core'" class="text-[9px] font-extrabold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100/50">Core</span>
+                                            <span x-show="item.status === 'secondary'" class="text-[9px] font-extrabold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100/50">Secondary</span>
+                                        </td>
+                                        <td class="px-3 py-2 text-center font-bold text-slate-700"><span x-text="item.weight + '%'"></span></td>
+                                        <td class="px-3 py-2 text-center text-slate-600" x-text="item.standard_display"></td>
+                                        <td class="px-3 py-2 text-center font-semibold" :class="item.is_match ? 'text-emerald-700' : 'text-rose-600'" x-text="item.applicant_display"></td>
+                                        <td class="px-3 py-2 text-center font-bold" :class="item.gap === 0 ? 'text-emerald-700' : (item.gap > 0 ? 'text-blue-600' : 'text-rose-600')" x-text="item.gap"></td>
+                                        <td class="px-3 py-2 text-center font-extrabold" :class="item.bobot_nilai >= 4 ? 'text-emerald-700' : (item.bobot_nilai >= 3 ? 'text-amber-600' : 'text-rose-600')" x-text="item.bobot_nilai.toFixed(1)"></td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {{-- Step 2: Perhitungan NCF & NSF --}}
+                <div>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center">2</span>
+                        Perhitungan NCF & NSF
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bg-emerald-50/60 border border-emerald-100 rounded-xl p-4 space-y-2">
+                            <div class="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">Nilai Core Factor (NCF)</div>
+                            <div class="bg-white rounded-lg px-3 py-2 border border-emerald-100/50 space-y-1">
+                                <div class="text-xs text-slate-600">
+                                    NCF = Σ(Bobot Nilai Core) / Jumlah Kriteria Core
+                                </div>
+                                <template x-if="activeSpkDetail">
+                                    <div class="text-xs font-mono text-slate-700">
+                                        NCF = <span class="text-emerald-700 font-bold">
+                                            <template x-for="(item, idx) in activeSpkDetail.criteria_details.filter(c => c.status === 'core')" :key="idx">
+                                                <span><span x-show="idx > 0"> + </span><span x-text="item.bobot_nilai.toFixed(1)"></span></span>
+                                            </template>
+                                        </span>
+                                        / <span x-text="activeSpkDetail.criteria_details.filter(c => c.status === 'core').length"></span>
+                                        = <strong class="text-emerald-800" x-text="activeSpkDetail.ncf"></strong>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="bg-amber-50/60 border border-amber-100 rounded-xl p-4 space-y-2">
+                            <div class="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Nilai Secondary Factor (NSF)</div>
+                            <div class="bg-white rounded-lg px-3 py-2 border border-amber-100/50 space-y-1">
+                                <div class="text-xs text-slate-600">
+                                    NSF = Σ(Bobot Nilai Secondary) / Jumlah Kriteria Secondary
+                                </div>
+                                <template x-if="activeSpkDetail">
+                                    <div class="text-xs font-mono text-slate-700">
+                                        NSF = <span class="text-amber-700 font-bold">
+                                            <template x-for="(item, idx) in activeSpkDetail.criteria_details.filter(c => c.status === 'secondary')" :key="idx">
+                                                <span><span x-show="idx > 0"> + </span><span x-text="item.bobot_nilai.toFixed(1)"></span></span>
+                                            </template>
+                                        </span>
+                                        / <span x-text="activeSpkDetail.criteria_details.filter(c => c.status === 'secondary').length"></span>
+                                        = <strong class="text-amber-800" x-text="activeSpkDetail.nsf"></strong>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Step 3: Nilai Akhir --}}
+                <div>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-extrabold flex items-center justify-center">3</span>
+                        Nilai Akhir & Skor Matching
+                    </h4>
+                    <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-4 space-y-3">
+                        <template x-if="activeSpkDetail">
+                            <div class="space-y-3">
+                                <div class="bg-white rounded-lg px-3 py-2.5 border border-indigo-100/50 space-y-2">
+                                    <div class="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Proses Perhitungan</div>
+                                    <div class="text-xs font-mono text-slate-700 space-y-1">
+                                        <div>
+                                            Nilai Akhir = Σ(Bobot% × Bobot_Nilai) / 100
+                                        </div>
+                                        <div class="text-slate-500">
+                                            = <template x-for="(item, idx) in activeSpkDetail.criteria_details" :key="idx">
+                                                <span><span x-show="idx > 0"> + </span>(<span x-text="item.weight"></span>% × <span x-text="item.bobot_nilai.toFixed(1)"></span>)</span>
+                                            </template> / 100
+                                        </div>
+                                        <div class="font-bold text-indigo-800">
+                                            = <span x-text="activeSpkDetail.nilai_akhir"></span> (skala 1.0 – 5.0)
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-white rounded-lg px-3 py-2.5 border border-indigo-100/50 space-y-2">
+                                    <div class="text-[10px] font-bold text-indigo-800 uppercase tracking-wider">Konversi ke Persentase</div>
+                                    <div class="text-xs font-mono text-slate-700 space-y-1">
+                                        <div>Skor (%) = ((<span x-text="activeSpkDetail.nilai_akhir"></span> − 1) / 4) × 100</div>
+                                        <div class="font-bold text-indigo-800">= <span x-text="activeSpkDetail.matching_score"></span>%</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-4 pt-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-slate-600">Status Prioritas:</span>
+                                        <span x-show="activeSpkDetail.is_priority" class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">Prioritas</span>
+                                        <span x-show="!activeSpkDetail.is_priority" class="text-[10px] font-extrabold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200">Non-Prioritas</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-bold text-slate-600">Skor Akhir:</span>
+                                        <span class="text-lg font-extrabold tracking-tight" :class="activeSpkDetail.matching_score >= 80 ? 'text-emerald-700' : (activeSpkDetail.matching_score >= 60 ? 'text-amber-600' : 'text-rose-600')" x-text="activeSpkDetail.matching_score + '%'"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+                <button @click="activeSpkDetail = null"
+                        class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all border border-slate-200/50">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
 @endsection

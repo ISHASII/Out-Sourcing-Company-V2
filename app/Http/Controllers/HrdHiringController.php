@@ -173,10 +173,18 @@ class HrdHiringController extends Controller
             ->latest()
             ->get();
 
+        // Build SPK detail calculations for each applicant
+        $spkDetailsMap = [];
+        $allApplications = $priorityApplications->merge($nonPriorityApplications);
+        foreach ($allApplications as $application) {
+            $spkDetailsMap[$application->id] = $jobPosting->calculateSpkScoreDetailed($application);
+        }
+
         return view('hrd.hiring.show', [
             'posting' => $jobPosting,
             'priorityApplications' => $priorityApplications,
             'nonPriorityApplications' => $nonPriorityApplications,
+            'spkDetailsMap' => $spkDetailsMap,
         ]);
     }
 
@@ -542,6 +550,8 @@ class HrdHiringController extends Controller
         $calculationDetails = [];
         $coreWeights = [];
         $secondaryWeights = [];
+        $rawCoreWeights = [];
+        $rawSecondaryWeights = [];
 
         // Check if new dynamic criteria configuration exists
         if (!empty($config) && isset($config['criteria'])) {
@@ -654,16 +664,18 @@ class HrdHiringController extends Controller
 
                 if ($status === 'core') {
                     $coreWeights[] = ($weightPercent / 100) * $weight;
+                    $rawCoreWeights[] = $weight;
                 } else {
                     $secondaryWeights[] = ($weightPercent / 100) * $weight;
+                    $rawSecondaryWeights[] = $weight;
                 }
                 
                 $totalScore += ($weightPercent / 100) * $weight;
                 $totalWeight += $weightPercent;
             }
 
-            $ncf = count($coreWeights) > 0 ? array_sum($coreWeights) : 5.0;
-            $nsf = count($secondaryWeights) > 0 ? array_sum($secondaryWeights) : 5.0;
+            $ncf = !empty($rawCoreWeights) ? array_sum($rawCoreWeights) / count($rawCoreWeights) : 5.0;
+            $nsf = !empty($rawSecondaryWeights) ? array_sum($rawSecondaryWeights) / count($rawSecondaryWeights) : 5.0;
             
             $nilaiAkhir = $totalWeight > 0 ? ($totalScore / ($totalWeight / 100)) : 5.0;
             $calculatedScore = (int) round((($nilaiAkhir - 1.0) / 4.0) * 100);

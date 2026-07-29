@@ -377,19 +377,46 @@
         </table>
 
         <!-- Summary section (Minimalist & Clean) -->
+        @php
+            $coreItems = collect($calculationDetails)->where('factor_type', 'Core Factor');
+            $secondaryItems = collect($calculationDetails)->where('factor_type', 'Secondary Factor');
+
+            $coreCount = $coreItems->count();
+            $coreWeightsList = $coreItems->pluck('weight')->map(fn($w) => number_format($w, 1))->implode(' + ');
+            
+            $secCount = $secondaryItems->count();
+            $secWeightsList = $secondaryItems->pluck('weight')->map(fn($w) => number_format($w, 1))->implode(' + ');
+        @endphp
         <div class="summary-wrapper">
             <div class="summary-card">
-                <div style="font-weight: 850; color: #003d7c; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px; margin-bottom: 5px;">Ringkasan Nilai Aspek</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="color: #64748b; font-weight: 500;">Rata-rata Core Factor (NCF):</span>
-                    <strong style="color: #ef4444; font-weight: 700;">{{ number_format($ncf, 2) }}</strong>
+                <div style="font-weight: 850; color: #003d7c; text-transform: uppercase; font-size: 9px; letter-spacing: 0.5px; margin-bottom: 6px;">Ringkasan Nilai Aspek</div>
+                
+                <div style="margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #475569; font-weight: 600; font-size: 9.5px;">Rata-rata Core Factor (NCF):</span>
+                        <strong style="color: #ef4444; font-weight: 800; font-size: 10.5px;">{{ number_format($ncf, 2) }}</strong>
+                    </div>
+                    @if($coreCount > 0)
+                        <div style="font-size: 8px; color: #64748b; margin-top: 1px; font-family: monospace; line-height: 1.2;">
+                            Rumus: ({{ $coreWeightsList }}) / {{ $coreCount }} = <strong>{{ number_format($ncf, 2) }}</strong>
+                        </div>
+                    @endif
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-                    <span style="color: #64748b; font-weight: 500;">Rata-rata Secondary Factor (NSF):</span>
-                    <strong style="color: #3b82f6; font-weight: 700;">{{ number_format($nsf, 2) }}</strong>
+
+                <div style="margin-bottom: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: #475569; font-weight: 600; font-size: 9.5px;">Rata-rata Secondary Factor (NSF):</span>
+                        <strong style="color: #3b82f6; font-weight: 800; font-size: 10.5px;">{{ number_format($nsf, 2) }}</strong>
+                    </div>
+                    @if($secCount > 0)
+                        <div style="font-size: 8px; color: #64748b; margin-top: 1px; font-family: monospace; line-height: 1.2;">
+                            Rumus: ({{ $secWeightsList }}) / {{ $secCount }} = <strong>{{ number_format($nsf, 2) }}</strong>
+                        </div>
+                    @endif
                 </div>
-                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #e2e8f0; font-size: 9px; color: #475569; font-style: italic; font-weight: 500;">
-                    Formula Penilaian: Nilai Akhir = (60% x NCF) + (40% x NSF)
+
+                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; font-size: 8.5px; color: #334155; font-style: italic; font-weight: 600;">
+                    Formula Penilaian: Nilai Akhir = (60% × {{ number_format($ncf, 2) }}) + (40% × {{ number_format($nsf, 2) }}) = {{ number_format($nilaiAkhir, 2) }}
                 </div>
             </div>
             

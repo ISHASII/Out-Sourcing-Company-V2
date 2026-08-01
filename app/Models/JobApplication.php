@@ -25,6 +25,7 @@ class JobApplication extends Model
         'placement_choice',
         'is_priority',
         'matching_score',
+        'spk_details',
         'status',
     ];
 
@@ -34,6 +35,7 @@ class JobApplication extends Model
         'placement_ready' => 'boolean',
         'is_priority' => 'boolean',
         'additional_documents' => 'array',
+        'spk_details' => 'array',
     ];
 
     protected $appends = ['age'];

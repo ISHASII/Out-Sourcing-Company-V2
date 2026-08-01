@@ -33,6 +33,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/hiring/{jobPosting}', [HrdHiringController::class, 'update'])->name('hrd.hiring.update');
         Route::delete('/hiring/{jobPosting}', [HrdHiringController::class, 'destroy'])->name('hrd.hiring.destroy');
         Route::patch('/hiring/{jobPosting}/toggle', [HrdHiringController::class, 'toggleActive'])->name('hrd.hiring.toggle');
+        Route::post('/hiring/{jobPosting}/execute-spk', [HrdHiringController::class, 'executeSpk'])->name('hrd.hiring.execute-spk');
 
         Route::get('/pelamar-aktif', [HrdHiringController::class, 'pelamarAktif'])->name('hrd.pelamar-aktif');
 

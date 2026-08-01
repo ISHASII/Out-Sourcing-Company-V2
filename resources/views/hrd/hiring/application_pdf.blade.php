@@ -381,11 +381,29 @@
             $coreItems = collect($calculationDetails)->where('factor_type', 'Core Factor');
             $secondaryItems = collect($calculationDetails)->where('factor_type', 'Secondary Factor');
 
-            $coreCount = $coreItems->count();
-            $coreWeightsList = $coreItems->pluck('weight')->map(fn($w) => number_format($w, 1))->implode(' + ');
-            
-            $secCount = $secondaryItems->count();
-            $secWeightsList = $secondaryItems->pluck('weight')->map(fn($w) => number_format($w, 1))->implode(' + ');
+            $cfTerms = [];
+            $cfWeightSum = 0;
+            foreach ($coreItems as $c) {
+                $w = ($c['criteria_weight'] ?? 0) / 100;
+                $val = (float)($c['weight'] ?? 0);
+                $valFormatted = floor($val) == $val ? number_format($val, 0) : number_format($val, 1);
+                $cfTerms[] = "(" . number_format($w, 2) . " × " . $valFormatted . ")";
+                $cfWeightSum += $w;
+            }
+            $coreWeightsList = !empty($cfTerms) ? implode(' + ', $cfTerms) : '0';
+            $coreDivider = number_format($cfWeightSum ?: 1.0, 2);
+
+            $sfTerms = [];
+            $sfWeightSum = 0;
+            foreach ($secondaryItems as $c) {
+                $w = ($c['criteria_weight'] ?? 0) / 100;
+                $val = (float)($c['weight'] ?? 0);
+                $valFormatted = floor($val) == $val ? number_format($val, 0) : number_format($val, 1);
+                $sfTerms[] = "(" . number_format($w, 2) . " × " . $valFormatted . ")";
+                $sfWeightSum += $w;
+            }
+            $secWeightsList = !empty($sfTerms) ? implode(' + ', $sfTerms) : '0';
+            $secDivider = number_format($sfWeightSum ?: 1.0, 2);
         @endphp
         <div class="summary-wrapper">
             <div class="summary-card">
@@ -396,9 +414,9 @@
                         <span style="color: #475569; font-weight: 600; font-size: 9.5px;">Rata-rata Core Factor (NCF):</span>
                         <strong style="color: #ef4444; font-weight: 800; font-size: 10.5px;">{{ number_format($ncf, 2) }}</strong>
                     </div>
-                    @if($coreCount > 0)
+                    @if(count($coreItems) > 0)
                         <div style="font-size: 8px; color: #64748b; margin-top: 1px; font-family: monospace; line-height: 1.2;">
-                            Rumus: ({{ $coreWeightsList }}) / {{ $coreCount }} = <strong>{{ number_format($ncf, 2) }}</strong>
+                            Rumus: ({{ $coreWeightsList }}) / {{ $coreDivider }} = <strong>{{ number_format($ncf, 2) }}</strong>
                         </div>
                     @endif
                 </div>
@@ -408,15 +426,23 @@
                         <span style="color: #475569; font-weight: 600; font-size: 9.5px;">Rata-rata Secondary Factor (NSF):</span>
                         <strong style="color: #3b82f6; font-weight: 800; font-size: 10.5px;">{{ number_format($nsf, 2) }}</strong>
                     </div>
-                    @if($secCount > 0)
+                    @if(count($secondaryItems) > 0)
                         <div style="font-size: 8px; color: #64748b; margin-top: 1px; font-family: monospace; line-height: 1.2;">
-                            Rumus: ({{ $secWeightsList }}) / {{ $secCount }} = <strong>{{ number_format($nsf, 2) }}</strong>
+                            Rumus: ({{ $secWeightsList }}) / {{ $secDivider }} = <strong>{{ number_format($nsf, 2) }}</strong>
                         </div>
                     @endif
                 </div>
 
-                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; font-size: 8.5px; color: #334155; font-style: italic; font-weight: 600;">
-                    Formula Penilaian: Nilai Akhir = (60% × {{ number_format($ncf, 2) }}) + (40% × {{ number_format($nsf, 2) }}) = {{ number_format($nilaiAkhir, 2) }}
+                <div style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed #cbd5e1; font-size: 8.5px; color: #334155; font-style: normal;">
+                    <div style="font-weight: 600; margin-bottom: 2px;">Formula Perhitungan Akhir:</div>
+                    <div style="font-family: monospace; color: #475569;">
+                        Nilai Akhir = (60% × NCF) + (40% × NSF) <br>
+                        Nilai Akhir = (60% × {{ number_format($ncf, 2) }}) + (40% × {{ number_format($nsf, 2) }}) = <strong style="color: #003d7c;">{{ number_format($nilaiAkhir, 2) }}</strong>
+                    </div>
+                    <div style="font-family: monospace; color: #475569; margin-top: 2px;">
+                        Skor = ((Nilai Akhir - 1) / 4) × 100% <br>
+                        Skor = (({{ number_format($nilaiAkhir, 2) }} - 1) / 4) × 100% = <strong style="color: #059669;">{{ $calculatedScore }}%</strong>
+                    </div>
                 </div>
             </div>
             

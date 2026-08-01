@@ -29,6 +29,8 @@ class JobPosting extends Model
         'active_until',
         'created_by',
         'requirements_config',
+        'spk_status',
+        'spk_execution_logs',
     ];
 
     protected $casts = [
@@ -40,6 +42,7 @@ class JobPosting extends Model
         'is_active' => 'boolean',
         'active_until' => 'date',
         'requirements_config' => 'array',
+        'spk_execution_logs' => 'array',
     ];
 
     public function applications(): HasMany
@@ -130,11 +133,14 @@ class JobPosting extends Model
             $gap = 0.0;
             $standardDisplay = '-';
             $applicantDisplay = '-';
+            $ideal = 5;
+            $cand = 5;
 
             if ($key === 'gender') {
                 $targetGender = $c['value'] ?? 'both';
                 $isMatch = ($targetGender === 'both' || $application->gender === $targetGender);
-                $gap = $isMatch ? 0.0 : -4.0;
+                $cand = $isMatch ? 5 : 1;
+                $gap = $cand - $ideal;
                 $genderLabels = ['male' => 'Pria', 'female' => 'Wanita', 'both' => 'Semua'];
                 $standardDisplay = $genderLabels[$targetGender] ?? $targetGender;
                 $applicantDisplay = $application->gender === 'male' ? 'Pria' : 'Wanita';
@@ -145,16 +151,17 @@ class JobPosting extends Model
                 $age = $application->age;
                 $isMatch = ($age !== null && $age >= $minAge && $age <= $maxAge);
                 if ($isMatch) {
-                    $gap = 0.0;
+                    $cand = 5;
                 } else {
                     if ($age === null) {
-                        $gap = -4.0;
+                        $cand = 1;
                     } else if ($age < $minAge) {
-                        $gap = -max(1, min(4, $minAge - $age));
+                        $cand = max(1, 5 - ($minAge - $age));
                     } else {
-                        $gap = -max(1, min(4, $age - $maxAge));
+                        $cand = max(1, 5 - ($age - $maxAge));
                     }
                 }
+                $gap = $cand - $ideal;
                 $standardDisplay = $minAge . '–' . $maxAge . ' thn';
                 $applicantDisplay = $age !== null ? $age . ' thn' : 'N/A';
             } 
@@ -163,7 +170,9 @@ class JobPosting extends Model
                 $candRank = self::educationRank($application->education_level);
                 $idealRank = self::educationRank($minEducation);
                 $isMatch = ($candRank >= $idealRank);
-                $gap = $candRank - $idealRank;
+                $ideal = $idealRank;
+                $cand = $candRank;
+                $gap = $cand - $ideal;
                 $standardDisplay = $minEducation;
                 $applicantDisplay = $application->education_level ?? 'N/A';
             } 
@@ -171,7 +180,9 @@ class JobPosting extends Model
                 $minExp = (int) ($c['value'] ?? 0);
                 $candExp = (int) $application->experience_years;
                 $isMatch = ($candExp >= $minExp);
-                $gap = $candExp - $minExp;
+                $ideal = $minExp;
+                $cand = $candExp;
+                $gap = $cand - $ideal;
                 $standardDisplay = 'Min. ' . $minExp . ' thn';
                 $applicantDisplay = $candExp . ' thn';
             } 
@@ -188,13 +199,15 @@ class JobPosting extends Model
                     $standardDisplay = 'Siap dimana saja';
                     $applicantDisplay = $application->placement_ready ? 'Siap' : 'Tidak';
                 }
-                $gap = $isMatch ? 0.0 : -4.0;
+                $cand = $isMatch ? 5 : 1;
+                $gap = $cand - $ideal;
             } 
             elseif ($key === 'major') {
                 $allowedMajors = !empty($c['value']) ? array_map('trim', explode(',', strtolower($c['value']))) : [];
                 $candMajor = trim(strtolower($application->major ?? ''));
                 $isMatch = empty($allowedMajors) || in_array($candMajor, $allowedMajors);
-                $gap = $isMatch ? 0.0 : -4.0;
+                $cand = $isMatch ? 5 : 1;
+                $gap = $cand - $ideal;
                 $standardDisplay = $c['value'] ?? 'Semua';
                 $applicantDisplay = $application->major ?? 'N/A';
             } 
@@ -202,14 +215,16 @@ class JobPosting extends Model
                 $allowedChoices = !empty($c['value']) ? array_map('trim', explode(',', strtolower($c['value']))) : [];
                 $candChoice = trim(strtolower($application->placement_choice ?? ''));
                 $isMatch = empty($allowedChoices) || in_array($candChoice, $allowedChoices);
-                $gap = $isMatch ? 0.0 : -4.0;
+                $cand = $isMatch ? 5 : 1;
+                $gap = $cand - $ideal;
                 $standardDisplay = $c['value'] ?? 'Semua';
                 $applicantDisplay = $application->placement_choice ?? 'N/A';
             } 
             else {
                 // Documents & Custom checkbox check
                 $isMatch = !empty($application->additional_documents[$key]);
-                $gap = $isMatch ? 0.0 : -4.0;
+                $cand = $isMatch ? 5 : 1;
+                $gap = $cand - $ideal;
                 $standardDisplay = 'Wajib upload';
                 $applicantDisplay = $isMatch ? 'Ada' : 'Tidak ada';
             }
@@ -227,11 +242,11 @@ class JobPosting extends Model
 
             // Aggregate for NCF / NSF
             if ($status === 'core') {
-                $coreBobotSum += $bobotNilai;
+                $coreBobotSum += ($weightPercent / 100) * $bobotNilai;
                 $coreCount++;
                 $cfWeightPercent += $weightPercent;
             } else {
-                $secondaryBobotSum += $bobotNilai;
+                $secondaryBobotSum += ($weightPercent / 100) * $bobotNilai;
                 $secondaryCount++;
                 $sfWeightPercent += $weightPercent;
             }
@@ -244,15 +259,17 @@ class JobPosting extends Model
                 'standard_display' => $standardDisplay,
                 'applicant_display' => $applicantDisplay,
                 'is_match' => $isMatch,
+                'target' => $ideal,
+                'applicant_value' => $cand,
                 'gap' => (int) round($gap),
                 'bobot_nilai' => $bobotNilai,
             ];
         }
 
-        // NCF = rata-rata bobot nilai kriteria Core
-        $ncf = $coreCount > 0 ? round($coreBobotSum / $coreCount, 2) : 0;
-        // NSF = rata-rata bobot nilai kriteria Secondary
-        $nsf = $secondaryCount > 0 ? round($secondaryBobotSum / $secondaryCount, 2) : 0;
+        // NCF = rata-rata berbobot bobot nilai kriteria Core
+        $ncf = $cfWeightPercent > 0 ? round($coreBobotSum / ($cfWeightPercent / 100), 2) : 0;
+        // NSF = rata-rata berbobot bobot nilai kriteria Secondary
+        $nsf = $sfWeightPercent > 0 ? round($secondaryBobotSum / ($sfWeightPercent / 100), 2) : 0;
 
         // Normalize matching score to 0 - 100
         // Nilai Akhir is a weighted sum (scale 1.0 - 5.0)

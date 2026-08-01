@@ -157,35 +157,76 @@ class HrdHiringController extends Controller
 
     public function show(JobPosting $jobPosting)
     {
-        $priorityApplications = $jobPosting->applications()
-            ->with(['user.profile'])
-            ->where('is_priority', true)
-            ->orderBy('matching_score', 'desc')
-            ->orderBy('birth_date', 'desc')
-            ->orderBy('experience_years', 'desc')
-            ->orderBy('placement_ready', 'desc')
-            ->get();
-
-        $nonPriorityApplications = $jobPosting->applications()
-            ->with(['user.profile'])
-            ->where('is_priority', false)
-            ->orderBy('matching_score', 'desc')
-            ->latest()
-            ->get();
-
-        // Build SPK detail calculations for each applicant
+        $allApplications = collect();
+        $priorityApplications = collect();
+        $nonPriorityApplications = collect();
         $spkDetailsMap = [];
-        $allApplications = $priorityApplications->merge($nonPriorityApplications);
-        foreach ($allApplications as $application) {
-            $spkDetailsMap[$application->id] = $jobPosting->calculateSpkScoreDetailed($application);
+
+        if ($jobPosting->spk_status === 'completed') {
+            $priorityApplications = $jobPosting->applications()
+                ->with(['user.profile'])
+                ->where('is_priority', true)
+                ->orderBy('matching_score', 'desc')
+                ->orderBy('birth_date', 'desc')
+                ->orderBy('experience_years', 'desc')
+                ->orderBy('placement_ready', 'desc')
+                ->get();
+
+            $nonPriorityApplications = $jobPosting->applications()
+                ->with(['user.profile'])
+                ->where('is_priority', false)
+                ->orderBy('matching_score', 'desc')
+                ->latest()
+                ->get();
+
+            $allApplications = $priorityApplications->merge($nonPriorityApplications);
+            foreach ($allApplications as $application) {
+                // Use saved spk_details if available, else calculate on the fly (for legacy)
+                $spkDetailsMap[$application->id] = $application->spk_details ?: $jobPosting->calculateSpkScoreDetailed($application);
+            }
+        } else {
+            $allApplications = $jobPosting->applications()
+                ->with(['user.profile'])
+                ->latest()
+                ->get();
         }
 
         return view('hrd.hiring.show', [
             'posting' => $jobPosting,
+            'allApplications' => $allApplications,
             'priorityApplications' => $priorityApplications,
             'nonPriorityApplications' => $nonPriorityApplications,
             'spkDetailsMap' => $spkDetailsMap,
         ]);
+    }
+
+    public function executeSpk(JobPosting $jobPosting)
+    {
+        $applications = $jobPosting->applications;
+        $count = 0;
+
+        foreach ($applications as $application) {
+            $spk = $jobPosting->calculateSpkScoreDetailed($application);
+            $application->is_priority = $spk['is_priority'];
+            $application->matching_score = $spk['matching_score'];
+            $application->spk_details = $spk;
+            $application->save();
+            $count++;
+        }
+
+        $jobPosting->spk_status = 'completed';
+        
+        $logs = $jobPosting->spk_execution_logs ?: [];
+        $logs[] = [
+            'executed_at' => now()->format('d-m-Y H:i:s'),
+            'applicant_count' => $count,
+        ];
+        $jobPosting->spk_execution_logs = $logs;
+        
+        $jobPosting->save();
+
+        return redirect()->route('hrd.hiring.show', $jobPosting->id)
+            ->with('success', "Profile Matching berhasil dieksekusi untuk $count pelamar.");
     }
 
     public function edit(JobPosting $jobPosting)

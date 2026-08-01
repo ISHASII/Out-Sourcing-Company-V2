@@ -386,9 +386,11 @@ class PelamarLowonganController extends Controller
         $additionalDocs['gardener_tools_skill'] = $request->boolean('gardener_tools_skill');
         $application->additional_documents = $additionalDocs;
 
-        $spk = $jobPosting->calculateSpkScore($application);
-        $application->is_priority = $spk['is_priority'];
-        $application->matching_score = $spk['matching_score'];
+        // Note: SPK is no longer calculated automatically here.
+        // It will be calculated by HRD manually.
+        $application->is_priority = false;
+        $application->matching_score = 0;
+        $application->spk_details = null; // Reset details if they re-apply or update
         $application->save();
 
         $msg = $isUpdate ? 'Lamaran Anda berhasil diperbarui.' : 'Lamaran berhasil dikirim.';

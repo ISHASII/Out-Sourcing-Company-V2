@@ -12,8 +12,12 @@ class PelamarLowonganController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->user()?->role !== 'pelamar') {
-                return redirect()->route('hrd.dashboard');
+            if ($user = auth()->user()) {
+                if ($user->role !== 'pelamar') {
+                    if ($user->role === 'hrd') return redirect()->route('hrd.dashboard');
+                    if ($user->role === 'superadmin') return redirect()->route('superadmin.dashboard');
+                    if ($user->role === 'pimpinan') return redirect()->route('pimpinan.dashboard');
+                }
             }
 
             return $next($request);

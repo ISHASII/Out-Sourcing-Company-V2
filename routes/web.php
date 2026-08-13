@@ -9,6 +9,7 @@ use App\Http\Controllers\PelamarLowonganController;
 use App\Http\Controllers\HrdPartnerController;
 use App\Http\Controllers\SuperAdminController;
 use App\Http\Controllers\CriteriaController;
+use App\Http\Controllers\JobCategoryController;
 
 Route::get('/', [LandingPageController::class, 'index']);
 
@@ -53,10 +54,21 @@ Route::middleware(['auth'])->group(function () {
         // Application Decision & PDF routes
         Route::post('/applications/{jobApplication}/accept', [HrdHiringController::class, 'acceptApplication'])->name('hrd.applications.accept');
         Route::post('/applications/{jobApplication}/reject', [HrdHiringController::class, 'rejectApplication'])->name('hrd.applications.reject');
+        Route::post('/applications/{jobApplication}/mark-valid', [HrdHiringController::class, 'markValid'])->name('hrd.applications.markValid');
+        Route::post('/applications/{jobApplication}/mark-invalid', [HrdHiringController::class, 'markInvalid'])->name('hrd.applications.markInvalid');
         Route::get('/applications/{jobApplication}/pdf', [HrdHiringController::class, 'downloadPdf'])->name('hrd.applications.pdf');
+        
+        Route::post('/hiring/{jobPosting}/send-report', [HrdHiringController::class, 'sendReportToPimpinan'])->name('hrd.hiring.sendReport');
 
-        // Kriteria Kandidat CRUD
+        // Kategori Pekerjaan CRUD (Dedicated)
+        Route::get('/kategori-pekerjaan', [JobCategoryController::class, 'index'])->name('hrd.kategori.index');
+        Route::post('/kategori-pekerjaan', [JobCategoryController::class, 'store'])->name('hrd.kategori.store');
+        Route::delete('/kategori-pekerjaan/{category}', [JobCategoryController::class, 'destroy'])->name('hrd.kategori.destroy');
+
+        // Kriteria Seleksi CRUD
         Route::get('/kriteria', [CriteriaController::class, 'index'])->name('hrd.kriteria.index');
+        Route::post('/kriteria/category', [CriteriaController::class, 'storeCategory'])->name('hrd.kriteria.category.store');
+        Route::delete('/kriteria/category/{category}', [CriteriaController::class, 'destroyCategory'])->name('hrd.kriteria.category.destroy');
         Route::get('/kriteria/{category}', [CriteriaController::class, 'show'])->name('hrd.kriteria.show');
         Route::post('/kriteria', [CriteriaController::class, 'store'])->name('hrd.kriteria.store');
         Route::put('/kriteria/{criterion}', [CriteriaController::class, 'update'])->name('hrd.kriteria.update');
@@ -69,7 +81,8 @@ Route::middleware(['auth'])->group(function () {
 
         Route::get('/profil', function () {
             if (Auth::user()->role !== 'pelamar') return redirect()->route('hrd.dashboard');
-            return view('pelamar.profil');
+            $jobCategories = \App\Models\JobCategory::where('is_active', true)->get();
+            return view('pelamar.profil', compact('jobCategories'));
         })->name('pelamar.profil');
 
         Route::post('/profil', [AuthController::class, 'updatePelamarProfile'])->name('pelamar.profil.update');
@@ -94,13 +107,24 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/admins/{admin}', [SuperAdminController::class, 'destroy'])->name('superadmin.admins.destroy');
         Route::patch('/admins/{admin}/toggle', [SuperAdminController::class, 'toggleStatus'])->name('superadmin.admins.toggle');
     });
+
+    // === PIMPINAN ROUTES ===
+    Route::prefix('pimpinan')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\PimpinanController::class, 'dashboard'])->name('pimpinan.dashboard');
+        Route::get('/laporan', [\App\Http\Controllers\PimpinanController::class, 'laporan'])->name('pimpinan.laporan');
+        Route::get('/hiring', [\App\Http\Controllers\PimpinanController::class, 'hiring'])->name('pimpinan.hiring');
+        Route::get('/hiring/{jobPosting}', [\App\Http\Controllers\PimpinanController::class, 'hiringShow'])->name('pimpinan.hiring.show');
+        Route::get('/partners', [\App\Http\Controllers\PimpinanController::class, 'partners'])->name('pimpinan.partners');
+        Route::get('/pelamar', [\App\Http\Controllers\PimpinanController::class, 'applicants'])->name('pimpinan.applicants');
+    });
 });
 
 // ============================================================
 //  REGISTRATION WITH OTP VERIFICATION
 // ============================================================
 Route::get('/register', function () {
-    return view('auth.register');
+    $jobCategories = \App\Models\JobCategory::where('is_active', true)->get();
+    return view('auth.register', compact('jobCategories'));
 })->name('register');
 
 Route::post('/register', [AuthController::class, 'register'])->name('register.store');

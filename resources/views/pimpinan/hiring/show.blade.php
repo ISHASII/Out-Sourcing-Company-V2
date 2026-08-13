@@ -59,17 +59,9 @@
                     <h3 class="text-2xl font-bold text-slate-800 tracking-tight mt-2">{{ $posting->title }}</h3>
                     <p class="text-xs text-slate-500 mt-1">Kategori Kerja: <strong class="text-slate-700 font-semibold">{{ $posting->category }}</strong></p>
                 </div>
+                </div>
                 <div class="flex items-center gap-2">
-                    @if($posting->spk_status === 'completed')
-                        <form action="{{ route('hrd.hiring.sendReport', $posting) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
-                                Kirim Laporan ke Pimpinan
-                            </button>
-                        </form>
-                    @endif
-                    <a href="{{ route('hrd.hiring') }}"
+                    <a href="{{ route('pimpinan.hiring') }}"
                         class="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-xl transition-all border border-slate-100">
                         Kembali ke Daftar
                     </a>
@@ -358,14 +350,7 @@
                             </div>
                         @endif
                     </div>
-                    <div>
-                        <form action="{{ route('hrd.hiring.execute-spk', $posting->id) }}" method="POST">
-                            @csrf
-                            <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-all flex items-center gap-2 {{ $posting->spk_status === 'pending' ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}">
-                                {{ $posting->spk_status === 'pending' ? 'Eksekusi Profile Matching' : 'Hitung Ulang SPK' }}
-                            </button>
-                        </form>
-                    </div>
+
                 </div>
             </div>
 
@@ -388,7 +373,7 @@
                         </span>
                     </div>
 
-                    @include('hrd.hiring.partials.applicant_table', ['applications' => $allApplications, 'isCompleted' => false, 'xDataPrefix' => ''])
+                    @include('hrd.hiring.partials.applicant_table', ['applications' => $allApplications, 'isCompleted' => false, 'xDataPrefix' => '', 'isReadOnly' => true])
 
                 </div>
             @else
@@ -409,7 +394,7 @@
                         </span>
                     </div>
 
-                    @include('hrd.hiring.partials.applicant_table', ['applications' => $priorityApplications, 'isCompleted' => true, 'xDataPrefix' => 'priority'])
+                    @include('hrd.hiring.partials.applicant_table', ['applications' => $priorityApplications, 'isCompleted' => true, 'xDataPrefix' => 'priority', 'isReadOnly' => true])
 
                 </div>
 
@@ -429,7 +414,7 @@
                         </span>
                     </div>
 
-                    @include('hrd.hiring.partials.applicant_table', ['applications' => $nonPriorityApplications, 'isCompleted' => true, 'xDataPrefix' => 'nonPriority'])
+                    @include('hrd.hiring.partials.applicant_table', ['applications' => $nonPriorityApplications, 'isCompleted' => true, 'xDataPrefix' => 'nonPriority', 'isReadOnly' => true])
 
                 </div>
 
@@ -449,7 +434,7 @@
                         </span>
                     </div>
 
-                    @include('hrd.hiring.partials.applicant_table', ['applications' => $interviewPassedApplications, 'isCompleted' => true, 'xDataPrefix' => 'valid'])
+                    @include('hrd.hiring.partials.applicant_table', ['applications' => $interviewPassedApplications, 'isCompleted' => true, 'xDataPrefix' => 'valid', 'isReadOnly' => true])
 
                 </div>
             @endif

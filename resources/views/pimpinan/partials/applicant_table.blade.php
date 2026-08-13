@@ -2,7 +2,6 @@
     $pageStr = $xDataPrefix ? $xDataPrefix . 'Page' : 'page';
     $perPageStr = $xDataPrefix ? $xDataPrefix . 'PerPage' : 'perPage';
     $totalStr = $xDataPrefix ? 'total' . ucfirst($xDataPrefix) : 'total';
-    $isReadOnly = $isReadOnly ?? false;
 @endphp
 <div class="overflow-x-auto" x-data="{ expandedRows: {} }">
     <table class="min-w-full text-xs">
@@ -15,9 +14,7 @@
                 @endif
                 <th class="text-left pb-3 font-bold uppercase tracking-wider">Kualifikasi Utama</th>
                 <th class="text-left pb-3 font-bold uppercase tracking-wider">Dokumen Pendukung</th>
-                @if(!$isReadOnly)
                 <th class="text-center pb-3 font-bold uppercase tracking-wider w-28">Aksi</th>
-                @endif
             </tr>
         </thead>
         <tbody class="text-slate-750 divide-y divide-slate-100">
@@ -94,7 +91,6 @@
                             @endif
                         </div>
                     </td>
-                    @if(!$isReadOnly)
                     <td class="py-4 text-center">
                         <div class="flex items-center justify-center gap-1.5">
                             @if($application->status === 'pending')
@@ -153,13 +149,12 @@
                             @endif
                         </div>
                     </td>
-                    @endif
                 </tr>
 
                 {{-- Accordion SPK Detail Tables --}}
                 @if($hasSpk)
                 <tr class="bg-slate-50/50" x-show="expandedRows[{{ $application->id }}] && {{ $rowDisplay }}" x-transition style="display: none;">
-                    <td colspan="{{ $isReadOnly ? 5 : 6 }}" class="p-6 border-b border-slate-200">
+                    <td colspan="6" class="p-6 border-b border-slate-200">
                         <div class="grid grid-cols-1 gap-6">
                             
                             {{-- 1. Tabel Nilai Profile Matching --}}

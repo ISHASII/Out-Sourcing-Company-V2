@@ -117,6 +117,15 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $pimpinan = User::updateOrCreate(
+            ['email' => 'pimpinan@gmail.com'],
+            [
+                'name'     => 'Bapak Direktur Pimpinan',
+                'role'     => 'pimpinan',
+                'password' => bcrypt('1234567890'),
+            ]
+        );
+
         $pelamarUtama = User::updateOrCreate(
             ['email' => 'pelamar@gmail.com'],
             [

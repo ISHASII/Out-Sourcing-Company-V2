@@ -35,7 +35,7 @@ class CriteriaController extends Controller
         }
 
         $criteria = $query->orderBy('category')->orderBy('sort_order')->paginate(10)->withQueryString();
-        $categories = ['Driver Ambulance', 'Asisten Keperawatan', 'Cleaning Service', 'Runner', 'Gardener'];
+        $categories = \App\Models\JobCategory::where('is_active', true)->get();
         $masterTemplates = $this->masterTemplates();
 
         return view('hrd.kriteria.index', compact('criteria', 'categories', 'masterTemplates'));
@@ -112,6 +112,30 @@ class CriteriaController extends Controller
         $criterion->delete();
 
         return back()->with('success', 'Kriteria "' . $label . '" berhasil dihapus dari kategori ' . $category);
+    }
+
+
+
+    public function storeCategory(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:100', 'unique:job_categories,name']
+        ]);
+
+        \App\Models\JobCategory::create([
+            'name' => $request->input('name'),
+            'is_active' => true
+        ]);
+
+        return back()->with('success', 'Kategori Pekerjaan "' . $request->input('name') . '" berhasil ditambahkan.');
+    }
+
+    public function destroyCategory(\App\Models\JobCategory $category)
+    {
+        $name = $category->name;
+        $category->delete();
+
+        return back()->with('success', 'Kategori Pekerjaan "' . $name . '" berhasil dihapus.');
     }
 
     /**

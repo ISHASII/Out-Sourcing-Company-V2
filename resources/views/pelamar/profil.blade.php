@@ -90,6 +90,12 @@
                         <label class="block text-sm font-bold text-slate-700 mb-2">Tanggal Lahir / Date of Birth *</label>
                         <!-- Menggunakan onClick="this.showPicker()" agar langsung keluar kalender saat diklik di manapun pada input -->
                         <input type="date" name="tanggal_lahir" value="{{ $profile?->birth_date?->format('Y-m-d') ?? '' }}" onclick="this.showPicker()" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-[#003d7c] focus:border-[#003d7c] block p-3 transition-colors cursor-pointer" required>
+                        @error('tanggal_lahir')
+                            <p class="text-red-500 text-xs mt-2 flex items-center gap-1 font-medium">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                {{ $message }}
+                            </p>
+                        @enderror
                     </div>
                 </div>
 
@@ -195,8 +201,13 @@
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                                 <div>
-                                    <label class="block text-sm font-bold text-slate-700 mb-2">Nama Pekerjaan / Job Title *</label>
-                                    <input type="text" :name="'pengalaman['+index+'][posisi_pekerjaan]'" x-model="item.position" placeholder="Contoh / Example: Staff Administrasi" class="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-[#003d7c] focus:border-[#003d7c] block p-3 transition-colors" :required="punyaPengalaman === 'IYA'">
+                                    <label class="block text-sm font-bold text-slate-700 mb-2">Kategori Pekerjaan / Job Category *</label>
+                                    <select :name="'pengalaman['+index+'][posisi_pekerjaan]'" x-model="item.position" class="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-[#003d7c] focus:border-[#003d7c] block p-3 transition-colors cursor-pointer" :required="punyaPengalaman === 'IYA'">
+                                        <option value="">Pilih Kategori Pekerjaan / Select Job Category</option>
+                                        @foreach($jobCategories as $cat)
+                                            <option value="{{ $cat->name }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-bold text-slate-700 mb-2">Nama Perusahaan / Company Name *</label>

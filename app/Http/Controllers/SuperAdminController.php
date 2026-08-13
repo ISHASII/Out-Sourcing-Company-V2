@@ -11,8 +11,12 @@ class SuperAdminController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->user()?->role !== 'superadmin') {
-                abort(403, 'Akses ditolak. Halaman ini hanya untuk Superadmin.');
+            if ($user = auth()->user()) {
+                if ($user->role !== 'superadmin') {
+                    if ($user->role === 'pelamar') return redirect()->route('pelamar.dashboard');
+                    if ($user->role === 'hrd') return redirect()->route('hrd.dashboard');
+                    if ($user->role === 'pimpinan') return redirect()->route('pimpinan.dashboard');
+                }
             }
             return $next($request);
         });

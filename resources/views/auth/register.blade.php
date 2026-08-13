@@ -54,7 +54,7 @@
                             <label for="first_name" class="block text-sm font-medium text-white/90 drop-shadow-sm">Nama
                                 Depan / <span class="text-xs text-white/70">First Name</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="first_name" name="first_name" type="text" required
+                            <input id="first_name" name="first_name" type="text" required value="{{ old('first_name') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Nama Depan / First Name">
                         </div>
@@ -62,22 +62,28 @@
                             <label for="last_name" class="block text-sm font-medium text-white/90 drop-shadow-sm">Nama
                                 Belakang / <span class="text-xs text-white/70">Last Name</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="last_name" name="last_name" type="text" required
+                            <input id="last_name" name="last_name" type="text" required value="{{ old('last_name') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Nama Belakang / Last Name">
                         </div>
                         <div>
                             <label for="email" class="block text-sm font-medium text-white/90 drop-shadow-sm">Email <span
                                     class="text-red-400">*</span></label>
-                            <input id="email" name="email" type="email" required
+                            <input id="email" name="email" type="email" required value="{{ old('email') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="email@contoh.com">
+                            @error('email')
+                                <p class="text-red-300 text-xs mt-2 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
                         <div>
                             <label for="phone" class="block text-sm font-medium text-white/90 drop-shadow-sm">Nomor HP /
                                 <span class="text-xs text-white/70">Phone Number</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="phone" name="phone" type="tel" required
+                            <input id="phone" name="phone" type="tel" required value="{{ old('phone') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="08xxxxxxxxxx">
                         </div>
@@ -131,12 +137,12 @@
                                     class="text-red-400">*</span></label>
                             <div class="flex items-center gap-6">
                                 <label class="flex items-center gap-2 cursor-pointer text-white">
-                                    <input type="radio" name="kewarganegaraan" value="WNI" checked
+                                    <input type="radio" name="kewarganegaraan" value="WNI" @checked(old('kewarganegaraan', 'WNI') == 'WNI')
                                         class="w-4 h-4 text-[#003d7c] border-white/30 bg-white/10 focus:ring-[#003d7c]">
                                     <span>WNI <span class="text-xs text-white/70">(Indonesian Citizen)</span></span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer text-white">
-                                    <input type="radio" name="kewarganegaraan" value="WNA"
+                                    <input type="radio" name="kewarganegaraan" value="WNA" @checked(old('kewarganegaraan') == 'WNA')
                                         class="w-4 h-4 text-[#003d7c] border-white/30 bg-white/10 focus:ring-[#003d7c]">
                                     <span>WNA <span class="text-xs text-white/70">(Foreign Citizen)</span></span>
                                 </label>
@@ -147,7 +153,7 @@
                             <label for="nik" class="block text-sm font-medium text-white/90 drop-shadow-sm">NIK / Nomor KTP
                                 / <span class="text-xs text-white/70">National ID</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="nik" name="nik" type="text" required maxlength="16"
+                            <input id="nik" name="nik" type="text" required maxlength="16" value="{{ old('nik') }}"
                                 oninput="this.value = this.value.replace(/[^0-9]/g, '')"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="16 Digit NIK KTP">
@@ -157,7 +163,7 @@
                             <label for="paspor" class="block text-sm font-medium text-white/90 drop-shadow-sm">Nomor Paspor
                                 / <span class="text-xs text-white/70">Passport Number</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="paspor" name="paspor" type="text"
+                            <input id="paspor" name="paspor" type="text" value="{{ old('paspor') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Nomor Paspor / Passport Number">
                         </div>
@@ -166,7 +172,7 @@
                             <label for="asal_negara" class="block text-sm font-medium text-white/90 drop-shadow-sm">Asal
                                 Negara / <span class="text-xs text-white/70">Country of Origin</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="asal_negara" name="asal_negara" type="text"
+                            <input id="asal_negara" name="asal_negara" type="text" value="{{ old('asal_negara') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Contoh / Example: Japan, Malaysia">
                         </div>
@@ -174,7 +180,7 @@
                             <label for="tempat_lahir" class="block text-sm font-medium text-white/90 drop-shadow-sm">Tempat
                                 Lahir / <span class="text-xs text-white/70">Place of Birth</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="tempat_lahir" name="tempat_lahir" type="text" required
+                            <input id="tempat_lahir" name="tempat_lahir" type="text" required value="{{ old('tempat_lahir') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Kota Kelahiran / Birth City">
                         </div>
@@ -183,9 +189,15 @@
                                 class="block text-sm font-medium text-white/90 drop-shadow-sm">Tanggal Lahir / <span
                                     class="text-xs text-white/70">Date of Birth</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="tanggal_lahir" name="tanggal_lahir" type="date" required style="color-scheme: dark;"
+                            <input id="tanggal_lahir" name="tanggal_lahir" type="date" required style="color-scheme: dark;" value="{{ old('tanggal_lahir') }}"
                                 onclick="this.showPicker()"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm cursor-pointer">
+                            @error('tanggal_lahir')
+                                <p class="text-red-300 text-xs mt-2 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    {{ $message }}
+                                </p>
+                            @enderror
                         </div>
                         <div class="md:col-span-2">
                             <label for="jenis_kelamin" class="block text-sm font-medium text-white/90 drop-shadow-sm">Jenis
@@ -193,9 +205,9 @@
                                     class="text-red-400">*</span></label>
                             <select id="jenis_kelamin" name="jenis_kelamin" required
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm [&>option]:text-slate-900 cursor-pointer">
-                                <option value="" disabled selected>Pilih Jenis Kelamin / Select Gender</option>
-                                <option value="Laki-laki">Laki-laki / Male</option>
-                                <option value="Perempuan">Perempuan / Female</option>
+                                <option value="" disabled @selected(!old('jenis_kelamin'))>Pilih Jenis Kelamin / Select Gender</option>
+                                <option value="Laki-laki" @selected(old('jenis_kelamin') == 'Laki-laki')>Laki-laki / Male</option>
+                                <option value="Perempuan" @selected(old('jenis_kelamin') == 'Perempuan')>Perempuan / Female</option>
                             </select>
                         </div>
                         <div class="md:col-span-2">
@@ -204,7 +216,7 @@
                                     class="text-red-400">*</span></label>
                             <textarea id="alamat" name="alamat" rows="3" required
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
-                                placeholder="Nama Jalan, RT/RW, Kelurahan, Kecamatan / Full Address"></textarea>
+                                placeholder="Nama Jalan, RT/RW, Kelurahan, Kecamatan / Full Address">{{ old('alamat') }}</textarea>
                         </div>
                         <div>
                             <label for="search_provinsi"
@@ -212,7 +224,7 @@
                                     class="text-xs text-white/70">Province</span> <span
                                     class="text-red-400">*</span></label>
                             <div class="relative mt-1">
-                                <input type="text" id="search_provinsi"
+                                <input type="text" id="search_provinsi" value="{{ old('provinsi') }}"
                                     class="block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                     placeholder="Ketik provinsi / Type province..." autocomplete="off">
                                 <div
@@ -227,14 +239,14 @@
                                     <div class="p-3 text-sm text-white/50 text-center">Memuat Provinsi...</div>
                                 </div>
                             </div>
-                            <input type="hidden" name="provinsi" id="hidden_provinsi" required>
+                            <input type="hidden" name="provinsi" id="hidden_provinsi" required value="{{ old('provinsi') }}">
                         </div>
                         <div>
                             <label for="search_kota" class="block text-sm font-medium text-white/90 drop-shadow-sm">Kota /
                                 Kabupaten / <span class="text-xs text-white/70">City</span> <span
                                     class="text-red-400">*</span></label>
                             <div class="relative mt-1">
-                                <input type="text" id="search_kota" disabled
+                                <input type="text" id="search_kota" disabled value="{{ old('kota') }}"
                                     class="block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     placeholder="Pilih Provinsi Terlebih Dahulu" autocomplete="off">
                                 <div
@@ -248,13 +260,13 @@
                                     class="absolute z-50 w-full mt-2 bg-[#002855] border border-white/20 rounded-xl shadow-2xl max-h-48 overflow-y-auto hidden">
                                 </div>
                             </div>
-                            <input type="hidden" name="kota" id="hidden_kota" required>
+                            <input type="hidden" name="kota" id="hidden_kota" required value="{{ old('kota') }}">
                         </div>
                         <div>
                             <label for="kode_pos" class="block text-sm font-medium text-white/90 drop-shadow-sm">Kode Pos /
                                 <span class="text-xs text-white/70">Postal Code</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="kode_pos" name="kode_pos" type="text" required
+                            <input id="kode_pos" name="kode_pos" type="text" required value="{{ old('kode_pos') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Contoh: 17433">
                         </div>
@@ -284,11 +296,11 @@
                                     class="text-red-400">*</span></label>
                             <select id="pendidikan" name="pendidikan" required
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm [&>option]:text-slate-900 cursor-pointer">
-                                <option value="" disabled selected>Pilih Jenjang / Select Level</option>
-                                <option value="SMA/SMK">SMA / SMK Sederajat (High School)</option>
-                                <option value="D3">Diploma 3 (D3)</option>
-                                <option value="D4/S1">Sarjana / Bachelor (D4/S1)</option>
-                                <option value="S2">Magister / Master (S2)</option>
+                                <option value="" disabled @selected(!old('pendidikan'))>Pilih Jenjang / Select Level</option>
+                                <option value="SMA/SMK" @selected(old('pendidikan') == 'SMA/SMK')>SMA / SMK Sederajat (High School)</option>
+                                <option value="D3" @selected(old('pendidikan') == 'D3')>Diploma 3 (D3)</option>
+                                <option value="D4/S1" @selected(old('pendidikan') == 'D4/S1')>Sarjana / Bachelor (D4/S1)</option>
+                                <option value="S2" @selected(old('pendidikan') == 'S2')>Magister / Master (S2)</option>
                             </select>
                         </div>
                         <div>
@@ -296,7 +308,7 @@
                                 Lulus / <span class="text-xs text-white/70">Graduation Year</span> <span
                                     class="text-red-400">*</span></label>
                             <input id="tahun_lulus" name="tahun_lulus" type="number" min="1980" max="{{ date('Y') }}"
-                                required
+                                required value="{{ old('tahun_lulus') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Contoh / Example: 2023">
                         </div>
@@ -304,14 +316,14 @@
                             <label for="sekolah" class="block text-sm font-medium text-white/90 drop-shadow-sm">Nama Sekolah
                                 / Universitas / <span class="text-xs text-white/70">School / University Name</span> <span
                                     class="text-red-400">*</span></label>
-                            <input id="sekolah" name="sekolah" type="text" required
+                            <input id="sekolah" name="sekolah" type="text" required value="{{ old('sekolah') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Nama Institusi / Institution Name">
                         </div>
                         <div class="md:col-span-2">
                             <label for="jurusan" class="block text-sm font-medium text-white/90 drop-shadow-sm">Jurusan /
                                 <span class="text-xs text-white/70">Major</span> <span class="text-red-400">*</span></label>
-                            <input id="jurusan" name="jurusan" type="text" required
+                            <input id="jurusan" name="jurusan" type="text" required value="{{ old('jurusan') }}"
                                 class="mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
                                 placeholder="Jurusan Pendidikan / Education Major">
                         </div>
@@ -331,7 +343,7 @@
                             Pengalaman Kerja / <span class="text-sm font-normal text-white/80">Work Experience</span>
                         </div>
                         <label class="flex items-center cursor-pointer space-x-2 text-sm font-normal text-white/90">
-                            <input type="checkbox" id="has_experience" name="has_experience" value="1"
+                            <input type="checkbox" id="has_experience" name="has_experience" value="1" @checked(old('has_experience') == '1')
                                 class="w-4 h-4 rounded border-white/30 bg-white/10 text-[#003d7c] focus:ring-[#003d7c] focus:ring-offset-0 focus:ring-2 cursor-pointer">
                             <span>Saya memiliki pengalaman kerja / <span class="text-xs text-white/70">I have work
                                     experience</span></span>
@@ -350,12 +362,16 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label class="block text-sm font-medium text-white/90 drop-shadow-sm">Nama Pekerjaan /
-                                        <span class="text-xs text-white/70">Job Title</span> <span
+                                    <label class="block text-sm font-medium text-white/90 drop-shadow-sm">Kategori Pekerjaan /
+                                        <span class="text-xs text-white/70">Job Category</span> <span
                                             class="text-red-400">*</span></label>
-                                    <input name="posisi[]" type="text"
-                                        class="exp-input mt-1 block w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm"
-                                        placeholder="Contoh / Example: Staff Administrasi">
+                                    <select name="posisi[]"
+                                        class="exp-input mt-1 block w-full px-4 py-3 bg-[#002855] border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-white/50 sm:text-sm transition-all shadow-inner backdrop-blur-sm cursor-pointer">
+                                        <option value="">Pilih Kategori Pekerjaan / Select Job Category</option>
+                                        @foreach($jobCategories as $cat)
+                                            <option value="{{ $cat->name }}">{{ $cat->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-white/90 drop-shadow-sm">Nama Perusahaan /
@@ -921,6 +937,14 @@
                     document.getElementById('preview_foto_container').classList.add('hidden');
                     if (fotoBlobUrl) URL.revokeObjectURL(fotoBlobUrl);
                 });
+            }
+
+            // Trigger change events on page load to restore dynamic UI state from old inputs
+            const checkedKewarganegaraan = document.querySelector('input[name="kewarganegaraan"]:checked');
+            if(checkedKewarganegaraan) checkedKewarganegaraan.dispatchEvent(new Event('change'));
+            
+            if (checkboxExp && checkboxExp.checked) {
+                checkboxExp.dispatchEvent(new Event('change'));
             }
         });
     </script>

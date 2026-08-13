@@ -5,7 +5,8 @@
 @section('dashboard-content')
 <div class="space-y-6 animate-fade-in" x-data="{ 
     showAddModal: false, 
-    showEditModal: false, 
+    showEditModal: false,
+    showCategoryModal: false,
     editId: null, 
     editLabel: '', 
     editStatus: 'secondary', 
@@ -25,11 +26,13 @@
             <p class="text-xs text-slate-500 mt-1">Kelola daftar kriteria kualifikasi bawaan dan tambahan untuk semua kategori pekerjaan.</p>
         </div>
         
-        <button @click="showAddModal = true" 
-                class="px-4 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 border border-yellow-500/20">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-            <span>Tambahkan Kriteria Baru</span>
-        </button>
+        <div>
+            <button @click="showAddModal = true" 
+                    class="px-4 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 border border-yellow-500/20">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                <span>Tambahkan Kriteria Baru</span>
+            </button>
+        </div>
     </div>
 
     {{-- Success Message --}}
@@ -310,5 +313,6 @@
              </form>
          </div>
     </div>
+
 </div>
 @endsection

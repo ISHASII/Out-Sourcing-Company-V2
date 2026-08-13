@@ -6,6 +6,7 @@
     <div class="space-y-6 animate-fade-in" x-data="{
         category: '{{ old('category', '') }}',
         allCriteria: {{ json_encode($allCriteria) }},
+        rejectedApplicationsGrouped: {{ json_encode($rejectedApplicationsGrouped) }},
         activeCriteria: [],
         totalCF: 0,
         totalSF: 0,
@@ -155,7 +156,57 @@
                         <textarea name="description" rows="3"
                             class="w-full mt-2 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 text-sm transition-all">{{ old('description') }}</textarea>
                     </div>
+                    </div>
                 </div>
+
+                <!-- Rekomendasi Pelamar Ditolak -->
+                <template x-if="category && rejectedApplicationsGrouped[category] && rejectedApplicationsGrouped[category].length > 0">
+                    <div class="bg-rose-50/50 p-6 rounded-2xl border border-rose-200/60 space-y-4 animate-fade-in mt-6">
+                        <div class="flex items-center gap-3 border-b border-rose-200/55 pb-2">
+                            <div class="w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-bold">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-rose-700 uppercase tracking-wider">Rekomendasi Pelamar (Periode Sebelumnya)</h4>
+                                <p class="text-xs text-rose-600">Terdapat <strong x-text="rejectedApplicationsGrouped[category].length"></strong> pelamar yang sebelumnya ditolak pada kategori ini. Anda dapat mempertimbangkan mereka kembali.</p>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto rounded-xl border border-rose-200/50">
+                            <table class="w-full text-xs">
+                                <thead class="bg-rose-100/50 text-rose-700">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-bold">Nama Pelamar</th>
+                                        <th class="px-3 py-2 text-left font-bold">Email</th>
+                                        <th class="px-3 py-2 text-center font-bold">Usia</th>
+                                        <th class="px-3 py-2 text-center font-bold">Pendidikan</th>
+                                        <th class="px-3 py-2 text-center font-bold">Skor Sebelumnya</th>
+                                        <th class="px-3 py-2 text-center font-bold">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-rose-100 bg-white">
+                                    <template x-for="app in rejectedApplicationsGrouped[category]" :key="app.id">
+                                        <tr class="hover:bg-rose-50/30">
+                                            <td class="px-3 py-2 font-semibold text-slate-700">
+                                                <span x-text="app.user.name"></span>
+                                            </td>
+                                            <td class="px-3 py-2 text-slate-500" x-text="app.user.email"></td>
+                                            <td class="px-3 py-2 text-center text-slate-600" x-text="app.user.profile.age + ' thn'"></td>
+                                            <td class="px-3 py-2 text-center text-slate-600" x-text="app.user.profile.education_level"></td>
+                                            <td class="px-3 py-2 text-center font-bold text-rose-600" x-text="app.matching_score ? app.matching_score + '%' : '-'"></td>
+                                            <td class="px-3 py-2 text-center">
+                                                <a :href="'https://wa.me/' + (app.user.profile.phone.replace(/[^0-9]/g, '').startsWith('0') ? '62' + app.user.profile.phone.replace(/[^0-9]/g, '').substring(1) : app.user.profile.phone.replace(/[^0-9]/g, ''))"
+                                                   target="_blank"
+                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] uppercase rounded-xl transition-all border border-emerald-250 shadow-sm">
+                                                    Hubungi WA
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
 
                 <!-- Section 2: Kriteria Persyaratan Dinamis dari DB -->
                 <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-200/80 shadow-sm space-y-6" x-show="category" x-cloak x-transition>

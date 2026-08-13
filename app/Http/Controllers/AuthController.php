@@ -33,7 +33,7 @@ class AuthController extends Controller
             'paspor' => ['nullable', 'string', 'max:20'],
             'asal_negara' => ['nullable', 'string', 'max:80'],
             'tempat_lahir' => ['required', 'string', 'max:80'],
-            'tanggal_lahir' => ['required', 'date'],
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . now()->subYears(17)->format('Y-m-d')],
             'jenis_kelamin' => ['required', 'string', 'max:20'],
             'alamat' => ['required', 'string', 'max:500'],
             'provinsi' => ['required', 'string', 'max:80'],
@@ -45,9 +45,9 @@ class AuthController extends Controller
             'jurusan' => ['required', 'string', 'max:120'],
             'has_experience' => ['nullable'],
             'perusahaan' => ['array'],
-            'perusahaan.*' => ['nullable', 'string', 'max:120'],
+            'perusahaan.*' => ['nullable', 'string', 'max:120', 'required_with:has_experience'],
             'posisi' => ['array'],
-            'posisi.*' => ['nullable', 'string', 'max:120'],
+            'posisi.*' => ['nullable', 'string', 'max:120', 'required_with:has_experience'],
             'tanggal_mulai' => ['array'],
             'tanggal_mulai.*' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
             'tanggal_selesai' => ['array'],
@@ -57,6 +57,11 @@ class AuthController extends Controller
             'file_cv' => ['required', 'file', 'mimes:pdf', 'max:5120'],
             'file_foto' => ['required', 'image', 'max:2048'],
             'role' => ['nullable', 'string'],
+        ], [
+            'tanggal_lahir.before_or_equal' => 'Mohon maaf, usia minimal untuk mendaftar adalah 17 tahun.',
+            'perusahaan.*.required_with' => 'Nama perusahaan wajib diisi jika Anda memiliki pengalaman kerja.',
+            'posisi.*.required_with' => 'Kategori Pekerjaan / Posisi wajib dipilih jika Anda memiliki pengalaman kerja.',
+            'email.unique' => 'Email ini sudah terdaftar. Silakan gunakan email lain atau masuk ke akun Anda.'
         ]);
 
         if ($data['kewarganegaraan'] === 'WNI' && empty($data['nik'])) {
@@ -415,6 +420,10 @@ class AuthController extends Controller
                 return redirect()->route('hrd.dashboard')->with('success', 'Selamat datang HRD, Anda berhasil masuk!');
             }
 
+            if ($user->role === 'pimpinan') {
+                return redirect()->route('pimpinan.dashboard')->with('success', 'Selamat datang Pimpinan, Anda berhasil masuk!');
+            }
+
             return redirect()->route('pelamar.dashboard')->with('success', 'Selamat datang Pelamar, Anda berhasil masuk!');
         }
 
@@ -449,7 +458,7 @@ class AuthController extends Controller
             'nama_belakang' => ['nullable', 'string', 'max:80'],
             'no_hp' => ['required', 'string', 'max:20'],
             'tempat_lahir' => ['required', 'string', 'max:80'],
-            'tanggal_lahir' => ['required', 'date'],
+            'tanggal_lahir' => ['required', 'date', 'before_or_equal:' . now()->subYears(17)->format('Y-m-d')],
             'jenis_kelamin' => ['required', 'string', 'max:20'],
             'pendidikan' => ['required', 'string', 'max:20'],
             'jurusan' => ['nullable', 'string', 'max:120'],
@@ -462,13 +471,17 @@ class AuthController extends Controller
             'kota_wna' => ['nullable', 'string', 'max:80'],
             'punya_pengalaman' => ['required', 'in:TIDAK,IYA'],
             'pengalaman' => ['nullable', 'array'],
-            'pengalaman.*.nama_perusahaan' => ['nullable', 'string', 'max:120'],
-            'pengalaman.*.posisi_pekerjaan' => ['nullable', 'string', 'max:120'],
+            'pengalaman.*.nama_perusahaan' => ['nullable', 'string', 'max:120', 'required_if:punya_pengalaman,IYA'],
+            'pengalaman.*.posisi_pekerjaan' => ['nullable', 'string', 'max:120', 'required_if:punya_pengalaman,IYA'],
             'pengalaman.*.tanggal_mulai' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
             'pengalaman.*.tanggal_selesai' => ['nullable', 'string', 'regex:/^\d{4}-\d{2}$/'],
             'pengalaman.*.deskripsi_pekerjaan' => ['nullable', 'string', 'max:1000'],
             'file_cv' => ['nullable', 'file', 'mimes:pdf', 'max:5120'],
             'file_foto' => ['nullable', 'image', 'max:2048'],
+        ], [
+            'tanggal_lahir.before_or_equal' => 'Mohon maaf, usia minimal adalah 17 tahun.',
+            'pengalaman.*.nama_perusahaan.required_if' => 'Nama perusahaan wajib diisi jika Anda memiliki pengalaman kerja.',
+            'pengalaman.*.posisi_pekerjaan.required_if' => 'Kategori Pekerjaan / Posisi wajib dipilih jika Anda memiliki pengalaman kerja.'
         ]);
         if ($data['status_kewarganegaraan'] === 'WNI' && empty($data['nik'])) {
             return back()->withErrors(['nik' => 'NIK wajib diisi untuk WNI.'])->withInput();

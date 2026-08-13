@@ -27,6 +27,7 @@ class JobApplication extends Model
         'matching_score',
         'spk_details',
         'status',
+        'interview_status',
     ];
 
     protected $casts = [

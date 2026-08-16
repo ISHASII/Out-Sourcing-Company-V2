@@ -51,7 +51,7 @@
                         <th class="px-6 py-3.5 text-left font-bold">#</th>
                         <th class="px-6 py-3.5 text-left font-bold">Nama Pelamar</th>
                         <th class="px-6 py-3.5 text-left font-bold">Lowongan (Posisi)</th>
-                        <th class="px-6 py-3.5 text-left font-bold">Lokasi</th>
+                        <th class="px-6 py-3.5 text-left font-bold">Mitra</th>
                         <th class="px-6 py-3.5 text-left font-bold">Tanggal Diterima</th>
                     </tr>
                 </thead>
@@ -75,10 +75,7 @@
                             <span class="text-xs text-slate-400">{{ $app->posting->category }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="font-bold text-slate-700 text-xs block">{{ $app->posting->location_city ?? 'Tidak Diketahui' }}</span>
-                            <span class="inline-flex mt-1 items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
-                                Mitra: {{ $app->posting->mitra_name }}
-                            </span>
+                            <span class="font-bold text-slate-700 text-sm block">{{ $app->posting->mitra_name }}</span>
                         </td>
                         <td class="px-6 py-4 text-slate-500 font-medium text-xs">
                             {{ $app->updated_at->format('d M Y') }}

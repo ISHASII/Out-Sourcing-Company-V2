@@ -13,7 +13,7 @@ class HrdPartnerController extends Controller
      */
     public function index()
     {
-        if (auth()->user()->role !== 'hrd') {
+        if (!in_array(auth()->user()->role, ['hrd', 'superadmin'])) {
             return redirect()->route('pelamar.dashboard');
         }
 
@@ -26,7 +26,7 @@ class HrdPartnerController extends Controller
      */
     public function store(Request $request)
     {
-        if (auth()->user()->role !== 'hrd') {
+        if (!in_array(auth()->user()->role, ['hrd', 'superadmin'])) {
             return redirect()->route('pelamar.dashboard');
         }
 
@@ -56,7 +56,7 @@ class HrdPartnerController extends Controller
      */
     public function update(Request $request, Mitra $partner)
     {
-        if (auth()->user()->role !== 'hrd') {
+        if (!in_array(auth()->user()->role, ['hrd', 'superadmin'])) {
             return redirect()->route('pelamar.dashboard');
         }
 
@@ -90,7 +90,7 @@ class HrdPartnerController extends Controller
      */
     public function destroy(Mitra $partner)
     {
-        if (auth()->user()->role !== 'hrd') {
+        if (!in_array(auth()->user()->role, ['hrd', 'superadmin'])) {
             return redirect()->route('pelamar.dashboard');
         }
 

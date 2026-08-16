@@ -13,9 +13,8 @@ class HrdHiringController extends Controller
     {
         $this->middleware(function ($request, $next) {
             if ($user = auth()->user()) {
-                if ($user->role !== 'hrd') {
+                if (!in_array($user->role, ['hrd', 'superadmin'])) {
                     if ($user->role === 'pelamar') return redirect()->route('pelamar.dashboard');
-                    if ($user->role === 'superadmin') return redirect()->route('superadmin.dashboard');
                     if ($user->role === 'pimpinan') return redirect()->route('pimpinan.dashboard');
                 }
             }

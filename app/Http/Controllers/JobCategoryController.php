@@ -11,7 +11,7 @@ class JobCategoryController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->user()?->role !== 'hrd') {
+            if (!in_array(auth()->user()?->role, ['hrd', 'superadmin'])) {
                 return redirect()->route('pelamar.dashboard');
             }
             return $next($request);

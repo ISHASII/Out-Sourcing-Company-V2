@@ -16,12 +16,26 @@
 
     {{-- Applicants Table --}}
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h4 class="text-sm font-bold text-slate-700">Riwayat Penempatan Kandidat</h4>
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                Status: Diterima
-            </span>
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <h4 class="text-sm font-bold text-slate-700">Riwayat Penempatan Kandidat</h4>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Status: Diterima
+                </span>
+            </div>
+            
+            <form method="GET" action="{{ route('pimpinan.applicants') }}" class="flex items-center gap-2">
+                <select name="mitra_id" class="text-sm border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:border-blue-500 bg-slate-50">
+                    <option value="">-- Semua Mitra Kerja --</option>
+                    @foreach($mitras as $mitra)
+                        <option value="{{ $mitra->id }}" @selected(request('mitra_id') == $mitra->id)>{{ $mitra->name }}</option>
+                    @endforeach
+                </select>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-sm font-semibold transition-colors">
+                    Filter
+                </button>
+            </form>
         </div>
 
         @if($acceptedApplicants->isEmpty())
@@ -61,7 +75,10 @@
                             <span class="text-xs text-slate-400">{{ $app->posting->category }}</span>
                         </td>
                         <td class="px-6 py-4">
-                            <span class="font-bold text-slate-700 text-xs">{{ $app->posting->location_city ?? 'Tidak Diketahui' }}</span>
+                            <span class="font-bold text-slate-700 text-xs block">{{ $app->posting->location_city ?? 'Tidak Diketahui' }}</span>
+                            <span class="inline-flex mt-1 items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
+                                Mitra: {{ $app->posting->mitra_name }}
+                            </span>
                         </td>
                         <td class="px-6 py-4 text-slate-500 font-medium text-xs">
                             {{ $app->updated_at->format('d M Y') }}
@@ -94,3 +111,4 @@
     }
 </style>
 @endsection
+

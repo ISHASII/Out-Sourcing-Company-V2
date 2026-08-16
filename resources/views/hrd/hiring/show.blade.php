@@ -3,7 +3,7 @@
 @section('dashboard-title', 'Pelamar Lowongan')
 
 @section('dashboard-content')
-    <div class="space-y-6 animate-fade-in" 
+    <div class="space-y-6 animate-fade-in" @open-applicant.window="activeApplicant = $event.detail" 
          x-data="{ 
             activeApplicant: null,
             activeSpkDetail: null,
@@ -57,7 +57,7 @@
                 <div>
                     <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">Manajemen Pelamar</span>
                     <h3 class="text-2xl font-bold text-slate-800 tracking-tight mt-2">{{ $posting->title }}</h3>
-                    <p class="text-xs text-slate-500 mt-1">Kategori Kerja: <strong class="text-slate-700 font-semibold">{{ $posting->category }}</strong></p>
+                    <p class="text-xs text-slate-500 mt-1">Kategori Kerja: <strong class="text-slate-700 font-semibold">{{ $posting->category }}</strong> &bull; Mitra: <strong class="text-slate-700 font-semibold">{{ $posting->mitra_name }}</strong></p>
                 </div>
                 <div class="flex items-center gap-2">
                     @if($posting->spk_status === 'completed')
@@ -69,6 +69,11 @@
                             </button>
                         </form>
                     @endif
+                    <a href="{{ route('hrd.hiring.downloadReport', $posting->id) }}" target="_blank"
+                        class="text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-xl transition-all border border-slate-200 inline-flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Download Laporan
+                    </a>
                     <a href="{{ route('hrd.hiring') }}"
                         class="text-xs font-bold text-slate-500 hover:text-slate-800 bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-xl transition-all border border-slate-100">
                         Kembali ke Daftar
@@ -431,6 +436,24 @@
 
                     @include('hrd.hiring.partials.applicant_table', ['applications' => $nonPriorityApplications, 'isCompleted' => true, 'xDataPrefix' => 'nonPriority'])
 
+                <!-- Lolos Seleksi 1 Table Card -->
+                <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden mt-6" x-data="{ lolos1Page: 1, lolos1PerPage: 10, totalLolos1: {{ $lolosSeleksi1Applications->count() }} }">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h4 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span> Lolos Seleksi 1
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-1">Kandidat yang telah lolos wawancara awal dan menunggu persetujuan akhir.</p>
+                        </div>
+                        <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-3 py-1 rounded-xl">
+                            {{ $lolosSeleksi1Applications->count() }} Pelamar
+                        </span>
+                    </div>
+
+                    @include('hrd.hiring.partials.applicant_table', ['applications' => $lolosSeleksi1Applications, 'isCompleted' => true, 'xDataPrefix' => 'lolos1'])
+
                 </div>
 
                 <!-- Lolos Wawancara Table Card -->
@@ -517,6 +540,11 @@
                                 <template x-if="activeApplicant && activeApplicant.status === 'accepted'">
                                     <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100">
                                         Diterima
+                                    </span>
+                                </template>
+                                <template x-if="activeApplicant && activeApplicant.status === 'lolos_seleksi_1'">
+                                    <span class="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+                                        Lolos Seleksi 1
                                     </span>
                                 </template>
                                 <template x-if="activeApplicant && activeApplicant.status === 'rejected'">
@@ -883,6 +911,9 @@
                     </div>
 
                     <!-- Hidden Forms for Modal Actions -->
+                    <form id="modal-seleksi1-form" :action="'/hrd/applications/' + (activeApplicant ? activeApplicant.id : '') + '/mark-lolos-seleksi-1'" method="POST" class="hidden">
+                        @csrf
+                    </form>
                     <form id="modal-accept-form" :action="'/hrd/applications/' + (activeApplicant ? activeApplicant.id : '') + '/accept'" method="POST" class="hidden">
                         @csrf
                     </form>
@@ -893,26 +924,26 @@
                     <!-- Footer Buttons -->
                     <div class="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
                         <div class="flex items-center gap-2">
-                            <template x-if="activeApplicant && activeApplicant.status === 'pending'">
+                            <template x-if="activeApplicant && ['pending', 'spk_evaluated'].includes(activeApplicant.status)">
                                 <div class="flex items-center gap-2">
                                     <button @click="$dispatch('open-confirm-modal', {
-                                                title: 'Terima Pelamar',
-                                                message: 'Apakah Anda yakin ingin menerima pelamar ' + activeApplicant.name + '?',
-                                                confirmText: 'Ya, Terima',
+                                                title: 'Lolos Wawancara 1',
+                                                message: 'Apakah pelamar ' + activeApplicant.name + ' beneran sesuai hasil wawancara?',
+                                                confirmText: 'Ya, Sesuai (Ceklis)',
                                                 type: 'info',
                                                 actionType: 'submit',
-                                                formElement: document.getElementById('modal-accept-form')
+                                                formElement: document.getElementById('modal-seleksi1-form')
                                             })"
-                                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                                            class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path>
                                         </svg>
-                                        Terima
+                                        Ceklis (Lolos Wawancara 1)
                                     </button>
                                     <button @click="$dispatch('open-confirm-modal', {
                                                 title: 'Tolak Pelamar',
-                                                message: 'Apakah Anda yakin ingin menolak pelamar ' + activeApplicant.name + '?',
-                                                confirmText: 'Ya, Tolak',
+                                                message: 'Apakah Anda yakin ingin menolak pelamar ' + activeApplicant.name + ' karena tidak sesuai?',
+                                                confirmText: 'Ya, Tolak (Silang)',
                                                 type: 'danger',
                                                 actionType: 'submit',
                                                 formElement: document.getElementById('modal-reject-form')
@@ -921,7 +952,40 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
                                         </svg>
-                                        Tolak
+                                        Silang (Tolak)
+                                    </button>
+                                </div>
+                            </template>
+
+                            <template x-if="activeApplicant && activeApplicant.status === 'lolos_seleksi_1'">
+                                <div class="flex items-center gap-2">
+                                    <button @click="$dispatch('open-confirm-modal', {
+                                                title: 'Approval Final',
+                                                message: 'Apakah Anda yakin ingin menyetujui pelamar ' + activeApplicant.name + ' secara final?',
+                                                confirmText: 'Ya, Terima Final',
+                                                type: 'info',
+                                                actionType: 'submit',
+                                                formElement: document.getElementById('modal-accept-form')
+                                            })"
+                                            class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path>
+                                        </svg>
+                                        Approval Final
+                                    </button>
+                                    <button @click="$dispatch('open-confirm-modal', {
+                                                title: 'Tolak Pelamar',
+                                                message: 'Apakah Anda yakin ingin menolak pelamar ' + activeApplicant.name + '?',
+                                                confirmText: 'Ya, Tolak Final',
+                                                type: 'danger',
+                                                actionType: 'submit',
+                                                formElement: document.getElementById('modal-reject-form')
+                                            })"
+                                            class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 shadow-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                        Tolak Final
                                     </button>
                                 </div>
                             </template>

@@ -2,25 +2,24 @@
 
 namespace Database\Seeders;
 
+use App\Models\Criterion;
+use App\Models\JobApplication;
+use App\Models\JobCategory;
+use App\Models\JobPosting;
 use App\Models\User;
 use App\Models\UserProfile;
-use App\Models\JobPosting;
-use App\Models\JobApplication;
-use App\Models\Criterion;
-use Illuminate\Database\Seeder;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database with a highly comprehensive, real-world dataset.
-     */
     public function run(): void
     {
-        // Clear old criteria
         Criterion::truncate();
+        JobCategory::truncate();
 
         // 1. DRIVER AMBULANCE CRITERIA
+        $catDriver = JobCategory::create(['name' => 'Driver Ambulance', 'is_active' => true]);
         $driverCriteria = [
             ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
             ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 25, 'max_default' => 35]],
@@ -29,13 +28,14 @@ class DatabaseSeeder extends Seeder
             ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
             ['key' => 'sertifikat_agd_ambulance', 'label' => 'Sertifikat AGD (Ambulance)', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null],
             ['key' => 'lisensi_sim_c_motor', 'label' => 'Lisensi SIM C (Motor)', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null],
-            ['key' => 'lisensi_sim_b1_mobil_berat', 'label' => 'Lisensi SIM B1 (Mobil Berat)', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 30, 'config' => null]
+            ['key' => 'lisensi_sim_b1_mobil_berat', 'label' => 'Lisensi SIM B1 (Mobil Berat)', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 30, 'config' => null],
         ];
         foreach ($driverCriteria as $index => $c) {
-            Criterion::create(array_merge($c, ['category' => 'Driver Ambulance', 'sort_order' => $index]));
+            Criterion::create(array_merge($c, ['category' => $catDriver->name, 'sort_order' => $index]));
         }
 
         // 2. ASISTEN KEPERAWATAN CRITERIA
+        $catNurse = JobCategory::create(['name' => 'Asisten Keperawatan', 'is_active' => true]);
         $nurseCriteria = [
             ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
             ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 25, 'max_default' => 65]],
@@ -44,13 +44,14 @@ class DatabaseSeeder extends Seeder
             ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
             ['key' => 'major', 'label' => 'Jurusan', 'type' => 'text', 'default_status' => 'core', 'default_weight' => 10, 'config' => null],
             ['key' => 'str_file', 'label' => 'Surat Tanda Registrasi (STR) / STRTK', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 20, 'config' => null],
-            ['key' => 'sertifikat_kompetensi', 'label' => 'Sertifikat Kompetensi Keperawatan', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 20, 'config' => null]
+            ['key' => 'sertifikat_kompetensi', 'label' => 'Sertifikat Kompetensi Keperawatan', 'type' => 'file', 'default_status' => 'core', 'default_weight' => 20, 'config' => null],
         ];
         foreach ($nurseCriteria as $index => $c) {
-            Criterion::create(array_merge($c, ['category' => 'Asisten Keperawatan', 'sort_order' => $index]));
+            Criterion::create(array_merge($c, ['category' => $catNurse->name, 'sort_order' => $index]));
         }
 
         // 3. CLEANING SERVICE CRITERIA
+        $catCS = JobCategory::create(['name' => 'Cleaning Service', 'is_active' => true]);
         $csCriteria = [
             ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
             ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['min_default' => 25, 'max_default' => 65]],
@@ -58,13 +59,14 @@ class DatabaseSeeder extends Seeder
             ['key' => 'experience', 'label' => 'Pengalaman Minimum', 'type' => 'number', 'default_status' => 'core', 'default_weight' => 15, 'config' => ['unit' => 'Tahun', 'min' => 0]],
             ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
             ['key' => 'placement_choices', 'label' => 'Pilihan Penempatan', 'type' => 'text', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
-            ['key' => 'sim_c_aktif', 'label' => 'SIM C Aktif', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null]
+            ['key' => 'sim_c_aktif', 'label' => 'SIM C Aktif', 'type' => 'file', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null],
         ];
         foreach ($csCriteria as $index => $c) {
-            Criterion::create(array_merge($c, ['category' => 'Cleaning Service', 'sort_order' => $index]));
+            Criterion::create(array_merge($c, ['category' => $catCS->name, 'sort_order' => $index]));
         }
 
         // 4. RUNNER CRITERIA
+        $catRunner = JobCategory::create(['name' => 'Runner', 'is_active' => true]);
         $runnerCriteria = [
             ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
             ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 23, 'max_default' => 35]],
@@ -73,13 +75,14 @@ class DatabaseSeeder extends Seeder
             ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
             ['key' => 'major', 'label' => 'Jurusan', 'type' => 'text', 'default_status' => 'core', 'default_weight' => 10, 'config' => null],
             ['key' => 'medical_support', 'label' => 'Dukungan Medis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
-            ['key' => 'medical_terms', 'label' => 'Istilah-istilah Medis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null]
+            ['key' => 'medical_terms', 'label' => 'Istilah-istilah Medis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
         ];
         foreach ($runnerCriteria as $index => $c) {
-            Criterion::create(array_merge($c, ['category' => 'Runner', 'sort_order' => $index]));
+            Criterion::create(array_merge($c, ['category' => $catRunner->name, 'sort_order' => $index]));
         }
 
         // 5. GARDENER CRITERIA
+        $catGardener = JobCategory::create(['name' => 'Gardener', 'is_active' => true]);
         $gardenerCriteria = [
             ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['options' => ['male', 'female', 'both'], 'labels' => ['Pria', 'Wanita', 'Semua']]],
             ['key' => 'age', 'label' => 'Batasan Usia', 'type' => 'range', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['min_default' => 25, 'max_default' => 40]],
@@ -88,665 +91,221 @@ class DatabaseSeeder extends Seeder
             ['key' => 'placement_ready', 'label' => 'Kesiapan Penempatan UCI', 'type' => 'checkbox', 'default_status' => 'core', 'default_weight' => 10, 'config' => ['sub_types' => ['anywhere', 'specific']]],
             ['key' => 'gardener_tech_understanding', 'label' => 'Memahami Teknis Pertumbuhan Tanaman', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
             ['key' => 'gardener_nursery_skill', 'label' => 'Mampu Mengelola Pembibitan Tanaman', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 20, 'config' => null],
-            ['key' => 'gardener_tools_skill', 'label' => 'Menguasai Skill Penggunaan Alat-Alat Teknis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null]
+            ['key' => 'gardener_tools_skill', 'label' => 'Menguasai Skill Penggunaan Alat-Alat Teknis', 'type' => 'checkbox', 'default_status' => 'secondary', 'default_weight' => 10, 'config' => null],
         ];
         foreach ($gardenerCriteria as $index => $c) {
-            Criterion::create(array_merge($c, ['category' => 'Gardener', 'sort_order' => $index]));
+            Criterion::create(array_merge($c, ['category' => $catGardener->name, 'sort_order' => $index]));
         }
 
-        // ----------------------------------------------------
-        // 1. CREATE CORE ACCOUNTS
-        // ----------------------------------------------------
-        // Superadmin account
-        User::updateOrCreate(
-            ['email' => 'superadmin@gmail.com'],
-            [
-                'name'      => 'Super Administrator',
-                'role'      => 'superadmin',
-                'is_active' => true,
-                'password'  => bcrypt('1234567890'),
-            ]
-        );
+        // CREATE CORE ACCOUNTS
+        User::updateOrCreate(['email' => 'superadmin@gmail.com'], [
+            'name' => 'Super Administrator', 'role' => 'superadmin', 'is_active' => true, 'password' => bcrypt('1234567890'),
+        ]);
 
-        $hrd = User::updateOrCreate(
-            ['email' => 'hrd@gmail.com'],
-            [
-                'name'     => 'Aditya Wijaya, S.Psi',
-                'role'     => 'hrd',
-                'password' => bcrypt('1234567890'),
-            ]
-        );
+        $hrd = User::updateOrCreate(['email' => 'hrd@gmail.com'], [
+            'name' => 'Aditya Wijaya, S.Psi', 'role' => 'hrd', 'password' => bcrypt('1234567890'),
+        ]);
 
-        $pimpinan = User::updateOrCreate(
-            ['email' => 'pimpinan@gmail.com'],
-            [
-                'name'     => 'Bapak Direktur Pimpinan',
-                'role'     => 'pimpinan',
-                'password' => bcrypt('1234567890'),
-            ]
-        );
+        $pimpinan = User::updateOrCreate(['email' => 'pimpinan@gmail.com'], [
+            'name' => 'Bapak Direktur Pimpinan', 'role' => 'pimpinan', 'password' => bcrypt('1234567890'),
+        ]);
 
-        $pelamarUtama = User::updateOrCreate(
-            ['email' => 'pelamar@gmail.com'],
-            [
-                'name' => 'Rian Hidayat',
-                'role' => 'pelamar',
-                'password' => bcrypt('1234567890'),
-            ]
-        );
+        // MITRAS
+        $mitra1 = \App\Models\Mitra::create(['name' => 'RSUD Kota Tangerang', 'logo_path' => '']);
+        $mitra2 = \App\Models\Mitra::create(['name' => 'Klinik Bhakti Asih', 'logo_path' => '']);
+        $mitra3 = \App\Models\Mitra::create(['name' => 'PT Bumi Serpong Damai Tbk', 'logo_path' => '']);
 
-        UserProfile::updateOrCreate(
-            ['user_id' => $pelamarUtama->id],
-            [
-                'gender' => 'male',
-                'birth_place' => 'Tangerang',
-                'birth_date' => '1998-05-15', // Age 28 in 2026
-                'phone' => '081234567890',
-                'education_level' => 'SMA/SMK',
-                'major' => 'Umum',
-                'experience_years' => 3,
-                'address' => 'Jl. Merdeka No. 45, RT 02/RW 04, Sukasari',
-                'city' => 'Tangerang',
-                'province' => 'Banten',
-                'postal_code' => '15111',
-                'cv_path' => 'cv_dummy.pdf',
-                'photo_path' => 'photo_dummy.jpg',
-                'extras' => [
-                    'experiences' => [
-                        [
-                            'company' => 'PT Indogreen Landscape',
-                            'position' => 'Assistant Gardener',
-                            'start_date' => '2023-01',
-                            'end_date' => '2025-01',
-                            'duration' => '2 Tahun',
-                            'description' => 'Mengelola pembibitan tanaman hias, pemangkasan rutin, serta perawatan estetika taman korporat.'
-                        ],
-                        [
-                            'company' => 'CV Karya Hijau',
-                            'position' => 'Gardener Junior',
-                            'start_date' => '2022-01',
-                            'end_date' => '2022-12',
-                            'duration' => '1 Tahun',
-                            'description' => 'Melakukan pembersihan area taman, penyiraman, dan pemupukan tanaman berkala.'
-                        ]
-                    ]
-                ]
-            ]
-        );
+        // JOB POSTINGS
+        $postings = [];
 
-        // ----------------------------------------------------
-        // 2. CREATE MULTIPLE ADDITIONAL REALISTIC PELAMAR USERS
-        // ----------------------------------------------------
-        $applicantsData = [
-            [
-                'name' => 'Budi Santoso',
-                'email' => 'budi@gmail.com',
-                'gender' => 'male',
-                'birth_date' => '1996-08-20', // Age 29
-                'education' => 'SMA/SMK',
-                'major' => 'Umum',
-                'experience' => 4,
-                'city' => 'Jakarta Barat',
-                'phone' => '087788992211',
-                'experiences' => [
-                    [
-                        'company' => 'RS Graha Medika',
-                        'position' => 'Driver Ambulans Operasional',
-                        'start_date' => '2021-01',
-                        'end_date' => '2025-01',
-                        'duration' => '4 Tahun',
-                        'description' => 'Mengemudikan ambulans dengan respons cepat dalam keadaan darurat medis, memelihara keandalan mesin ambulans.'
-                    ]
+        $postings['Driver'] = JobPosting::create([
+            'title' => 'Driver Ambulans Gawat Darurat', 'category' => $catDriver->name,
+            'mitra_id' => $mitra1->id,
+            'description' => 'Dibutuhkan Driver Ambulans Gawat Darurat yang sigap.',
+            'core_gender' => 'male', 'core_min_age' => 25, 'core_max_age' => 35, 'core_min_education' => 'SMA/SMK',
+            'second_min_experience' => 0, 'second_requires_placement_ready' => true,
+            'shift_type' => 'shift', 'salary_min' => 4500000, 'salary_max' => 5500000, 'salary_hidden' => false,
+            'is_active' => true, 'active_until' => Carbon::now()->addDays(30), 'created_by' => $hrd->id,
+            'requirements_config' => [
+                'criteria' => [
+                    ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'status' => 'core', 'weight' => 20, 'value' => 'male'],
+                    ['key' => 'age', 'label' => 'Usia', 'type' => 'range', 'status' => 'core', 'weight' => 20, 'value' => ['min' => 25, 'max' => 35]],
+                    ['key' => 'lisensi_sim_b1_mobil_berat', 'label' => 'Lisensi SIM B1 (Mobil Berat)', 'type' => 'file', 'status' => 'core', 'weight' => 60, 'value' => ''],
                 ]
             ],
-            [
-                'name' => 'Ani Lestari',
-                'email' => 'ani@gmail.com',
-                'gender' => 'female',
-                'birth_date' => '2000-03-12', // Age 26
-                'education' => 'SMA/SMK',
-                'major' => 'Keperawatan',
-                'experience' => 2,
-                'city' => 'Tangerang',
-                'phone' => '081299887766',
-                'experiences' => [
-                    [
-                        'company' => 'Klinik Sehat Utama',
-                        'position' => 'Asisten Perawat Gigi & Umum',
-                        'start_date' => '2024-01',
-                        'end_date' => '2026-01',
-                        'duration' => '2 Tahun',
-                        'description' => 'Membantu dokter gigi menyiapkan peralatan penunjang medis, melakukan pencatatan rekam medis pasien secara rapi.'
-                    ]
+        ]);
+
+        $postings['CS'] = JobPosting::create([
+            'title' => 'Cleaning Service Kantor Regional', 'category' => $catCS->name,
+            'mitra_id' => $mitra3->id,
+            'description' => 'Melakukan pemeliharaan kebersihan gedung kantor.',
+            'core_gender' => 'both', 'core_min_age' => 25, 'core_max_age' => 65, 'core_min_education' => 'SMA/SMK',
+            'second_min_experience' => 0, 'second_requires_placement_ready' => true,
+            'shift_type' => 'non_shift', 'salary_min' => 3800000, 'salary_max' => 4300000, 'salary_hidden' => false,
+            'is_active' => true, 'active_until' => Carbon::now()->addDays(30), 'created_by' => $hrd->id,
+            'requirements_config' => [
+                'criteria' => [
+                    ['key' => 'gender', 'label' => 'Jenis Kelamin', 'type' => 'select', 'status' => 'core', 'weight' => 20, 'value' => 'both'],
+                    ['key' => 'experience', 'label' => 'Pengalaman Kerja', 'type' => 'number', 'status' => 'core', 'weight' => 40, 'value' => 0],
+                    ['key' => 'sim_c_aktif', 'label' => 'SIM C Aktif', 'type' => 'file', 'status' => 'secondary', 'weight' => 40, 'value' => ''],
                 ]
             ],
-            [
-                'name' => 'Chandra Wijaya',
-                'email' => 'chandra@gmail.com',
-                'gender' => 'male',
-                'birth_date' => '2002-11-05', // Age 23
-                'education' => 'SMA/SMK',
-                'major' => 'Umum',
-                'experience' => 1,
-                'city' => 'Tangerang',
-                'phone' => '085611223344',
-                'experiences' => [
-                    [
-                        'company' => 'PT Mahakarya Logistik',
-                        'position' => 'Kurir & Runner Lapangan',
-                        'start_date' => '2025-01',
-                        'end_date' => '2026-01',
-                        'duration' => '1 Tahun',
-                        'description' => 'Mengirimkan berkas penunjang operasional kantor cabang, melakukan pengecekan inventaris harian.'
-                    ]
+        ]);
+
+        $postings['Nurse'] = JobPosting::create([
+            'title' => 'Perawat Klinik', 'category' => $catNurse->name,
+            'mitra_id' => $mitra2->id,
+            'description' => 'Membantu tugas keperawatan di klinik.',
+            'core_gender' => 'both', 'core_min_age' => 25, 'core_max_age' => 65, 'core_min_education' => 'SMA/SMK',
+            'second_min_experience' => 0, 'second_requires_placement_ready' => true,
+            'shift_type' => 'shift', 'salary_min' => 4800000, 'salary_max' => 5800000, 'salary_hidden' => false,
+            'is_active' => true, 'active_until' => Carbon::now()->addDays(30), 'created_by' => $hrd->id,
+            'spk_status' => 'completed',
+            'requirements_config' => [
+                'criteria' => [
+                    ['key' => 'education', 'label' => 'Pendidikan', 'type' => 'select', 'status' => 'core', 'weight' => 30, 'value' => 'D3'],
+                    ['key' => 'major', 'label' => 'Jurusan', 'type' => 'text', 'status' => 'core', 'weight' => 30, 'value' => 'Keperawatan'],
+                    ['key' => 'str_file', 'label' => 'Surat Tanda Registrasi (STR) / STRTK', 'type' => 'file', 'status' => 'core', 'weight' => 40, 'value' => ''],
                 ]
             ],
-            [
-                'name' => 'Dewi Rahmawati',
-                'email' => 'dewi@gmail.com',
-                'gender' => 'female',
-                'birth_date' => '1999-07-25', // Age 26
-                'education' => 'D3',
-                'major' => 'Keperawatan',
-                'experience' => 3,
-                'city' => 'Jakarta Selatan',
-                'phone' => '089911223344',
-                'experiences' => [
-                    [
-                        'company' => 'RS Sentra Medika',
-                        'position' => 'Asisten Keperawatan Rawat Inap',
-                        'start_date' => '2023-01',
-                        'end_date' => '2026-01',
-                        'duration' => '3 Tahun',
-                        'description' => 'Melakukan pemantauan tanda-tanda vital pasien rawat inap, menyuapi makanan dan mengelola kenyamanan pasien.'
-                    ]
+        ]);
+
+        $postings['Runner'] = JobPosting::create([
+            'title' => 'Runner Penunjang Operasional Medis', 'category' => $catRunner->name,
+            'custom_mitra_name' => 'Siloam Hospitals (Custom Mitra)',
+            'description' => 'Petugas lapangan untuk pengantaran.',
+            'core_gender' => 'male', 'core_min_age' => 23, 'core_max_age' => 35, 'core_min_education' => 'SMA/SMK',
+            'second_min_experience' => 0, 'second_requires_placement_ready' => false,
+            'shift_type' => 'shift', 'salary_min' => 4100000, 'salary_max' => 4600000, 'salary_hidden' => false,
+            'is_active' => true, 'active_until' => Carbon::now()->addDays(30), 'created_by' => $hrd->id,
+            'spk_status' => 'completed',
+            'requirements_config' => [
+                'criteria' => [
+                    ['key' => 'age', 'label' => 'Usia', 'type' => 'range', 'status' => 'core', 'weight' => 60, 'value' => ['min' => 23, 'max' => 35]],
+                    ['key' => 'medical_support', 'label' => 'Pemahaman Dukungan Medis', 'type' => 'checkbox', 'status' => 'secondary', 'weight' => 20, 'value' => ''],
+                    ['key' => 'medical_terms', 'label' => 'Pemahaman Istilah Medis', 'type' => 'checkbox', 'status' => 'secondary', 'weight' => 20, 'value' => ''],
                 ]
             ],
-            [
-                'name' => 'Eko Prasetyo',
-                'email' => 'eko@gmail.com',
-                'gender' => 'male',
-                'birth_date' => '1992-04-18', // Age 34
-                'education' => 'SMA/SMK',
-                'major' => 'Umum',
-                'experience' => 6,
-                'city' => 'Tangerang Kota',
-                'phone' => '081344556677',
-                'experiences' => [
-                    [
-                        'company' => 'PT Indoclean Services',
-                        'position' => 'Cleaning Service Senior',
-                        'start_date' => '2020-01',
-                        'end_date' => '2026-01',
-                        'duration' => '6 Tahun',
-                        'description' => 'Melakukan pembersihan area kaca tinggi luar ruangan, poles lantai marmer, serta memimpin tim CS lapangan.'
-                    ]
+        ]);
+
+        $postings['Gardener'] = JobPosting::create([
+            'title' => 'Gardener Area Lansekap PT UCI', 'category' => $catGardener->name,
+            'custom_mitra_name' => 'Internal PT UCI',
+            'description' => 'Mengelola pertamanan luar ruangan.',
+            'core_gender' => 'male', 'core_min_age' => 25, 'core_max_age' => 40, 'core_min_education' => 'SMA/SMK',
+            'second_min_experience' => 0, 'second_requires_placement_ready' => false,
+            'shift_type' => 'non_shift', 'salary_min' => 4000000, 'salary_max' => 4500000, 'salary_hidden' => false,
+            'is_active' => true, 'active_until' => Carbon::now()->addDays(30), 'created_by' => $hrd->id,
+            'spk_status' => 'completed',
+            'requirements_config' => [
+                'criteria' => [
+                    ['key' => 'experience', 'label' => 'Pengalaman Kerja', 'type' => 'number', 'status' => 'core', 'weight' => 50, 'value' => 0],
+                    ['key' => 'gardener_tech_understanding', 'label' => 'Pemahaman Teknik Berkebun', 'type' => 'checkbox', 'status' => 'core', 'weight' => 50, 'value' => ''],
                 ]
             ],
-            [
-                'name' => 'Fajar Sidik',
-                'email' => 'fajar@gmail.com',
-                'gender' => 'male',
-                'birth_date' => '2004-10-10', // Age 21 (Underage for Driver & Gardener, perfect for Runner/CS)
-                'education' => 'SMA/SMK',
-                'major' => 'Umum',
-                'experience' => 0,
-                'city' => 'Tangerang',
-                'phone' => '087812123434',
-                'experiences' => []
-            ]
-        ];
-
-        $users = [];
-        foreach ($applicantsData as $data) {
-            $user = User::updateOrCreate(
-                ['email' => $data['email']],
-                [
-                    'name' => $data['name'],
-                    'role' => 'pelamar',
-                    'password' => bcrypt('1234567890'),
-                ]
-            );
-
-            UserProfile::updateOrCreate(
-                ['user_id' => $user->id],
-                [
-                    'gender' => $data['gender'],
-                    'birth_place' => $data['city'],
-                    'birth_date' => $data['birth_date'],
-                    'phone' => $data['phone'],
-                    'education_level' => $data['education'],
-                    'major' => $data['major'],
-                    'experience_years' => $data['experience'],
-                    'address' => 'Jl. Kebagusan Indah No. 12, ' . $data['city'],
-                    'city' => $data['city'],
-                    'province' => 'DKI Jakarta',
-                    'postal_code' => '12000',
-                    'cv_path' => 'cv_' . strtolower(explode(' ', $data['name'])[0]) . '.pdf',
-                    'photo_path' => 'photo_' . strtolower(explode(' ', $data['name'])[0]) . '.jpg',
-                    'extras' => ['experiences' => $data['experiences']]
-                ]
-            );
-
-            $users[strtolower(explode(' ', $data['name'])[0])] = $user;
-        }
-
-        // ----------------------------------------------------
-        // 3. CREATE JOB POSTINGS FOR ALL 5 ROLE CATEGORIES
-        // ----------------------------------------------------
-        
-        // 1. DRIVER AMBULANCE
-        $driverConfig = [
-            'gender' => ['status' => 'core', 'value' => 'male'],
-            'age' => ['status' => 'core', 'min' => 25, 'max' => 35],
-            'education' => ['status' => 'core', 'value' => 'SMA/SMK'],
-            'experience' => ['status' => 'secondary', 'value' => 0],
-            'placement_ready' => ['status' => 'core'],
-            'custom_documents' => [
-                ['key' => 'sertifikat_agd_ambulance', 'label' => 'Sertifikat AGD (Ambulance)', 'status' => 'secondary'],
-                ['key' => 'lisensi_sim_c_motor', 'label' => 'Lisensi SIM C (Motor)', 'status' => 'secondary'],
-                ['key' => 'lisensi_sim_b1_mobil_berat', 'label' => 'Lisensi SIM B1 (Mobil Berat)', 'status' => 'core']
-            ]
-        ];
-        $postingDriver = JobPosting::create([
-            'title' => 'Driver Ambulans Gawat Darurat',
-            'category' => 'Driver Ambulance',
-            'description' => 'Dibutuhkan Driver Ambulans Gawat Darurat yang sigap, tanggap, dan memiliki keahlian mengemudi tingkat tinggi untuk ditempatkan di operasional unit medis UCI.',
-            'core_gender' => 'male',
-            'core_min_age' => 25,
-            'core_max_age' => 35,
-            'core_min_education' => 'SMA/SMK',
-            'second_min_experience' => 0,
-            'second_requires_placement_ready' => true,
-            'location_city' => null,
-            'shift_type' => 'shift',
-            'salary_min' => 4500000,
-            'salary_max' => 5500000,
-            'salary_hidden' => false,
-            'is_active' => true,
-            'active_until' => Carbon::now()->addDays(30),
-            'created_by' => $hrd->id,
-            'requirements_config' => $driverConfig
         ]);
 
-        // 2. CLEANING SERVICE
-        $csConfig = [
-            'gender' => ['status' => 'core', 'value' => 'both'],
-            'age' => ['status' => 'core', 'min' => 25, 'max' => 65],
-            'education' => ['status' => 'core', 'value' => 'SMA/SMK'],
-            'experience' => ['status' => 'core', 'value' => 0],
-            'placement_ready' => ['status' => 'core'],
-            'placement_choices' => ['status' => 'secondary', 'value' => 'Jakarta Barat, Tangerang'],
-            'custom_documents' => [
-                ['key' => 'sim_c_aktif', 'label' => 'SIM C Aktif', 'status' => 'secondary']
-            ]
-        ];
-        $postingCS = JobPosting::create([
-            'title' => 'Cleaning Service Kantor Regional',
-            'category' => 'Cleaning Service',
-            'description' => 'Melakukan pemeliharaan kebersihan gedung kantor, pembersihan kaca tinggi, pengepelan marmer, dan menjaga sterilisasi ruangan kerja karyawan.',
-            'core_gender' => 'both',
-            'core_min_age' => 25,
-            'core_max_age' => 65,
-            'core_min_education' => 'SMA/SMK',
-            'second_min_experience' => 0,
-            'second_requires_placement_ready' => true,
-            'location_city' => null,
-            'shift_type' => 'non_shift',
-            'salary_min' => 3800000,
-            'salary_max' => 4300000,
-            'salary_hidden' => false,
-            'is_active' => true,
-            'active_until' => Carbon::now()->addDays(30),
-            'created_by' => $hrd->id,
-            'requirements_config' => $csConfig
-        ]);
+        // HELPER TO CREATE APPLICANTS
+        $createApplicant = function ($name, $email, $role, $gender, $birth, $edu, $major, $exp, $docs, $placement, $choice = null, $statusOverride = null) use ($postings) {
+            $user = User::create(['name' => $name, 'email' => $email, 'role' => 'pelamar', 'password' => bcrypt('1234567890')]);
+            UserProfile::create([
+                'user_id' => $user->id, 'gender' => $gender, 'birth_place' => 'Tangerang', 'birth_date' => $birth,
+                'phone' => '08000000000', 'education_level' => $edu, 'major' => $major, 'experience_years' => $exp,
+                'address' => 'Jl. Dummy', 'city' => 'Tangerang', 'province' => 'Banten', 'postal_code' => '15111',
+                'cv_path' => 'cv.pdf', 'photo_path' => 'photo.jpg', 'extras' => ['experiences' => []],
+            ]);
+            $app = JobApplication::create([
+                'job_posting_id' => $postings[$role]->id, 'user_id' => $user->id, 'gender' => $gender,
+                'birth_date' => $birth, 'education_level' => $edu, 'major' => $major, 'experience_years' => $exp,
+                'placement_ready' => $placement, 'placement_choice' => $choice, 'additional_documents' => $docs,
+            ]);
+            $spk = $postings[$role]->calculateSpkScore($app);
+            $app->update([
+                'is_priority' => $spk['is_priority'], 
+                'matching_score' => $spk['matching_score'],
+                'status' => $statusOverride ?? 'pending',
+                'interview_status' => $statusOverride === 'accepted' ? 'valid' : null
+            ]);
+        };
 
-        // 3. ASISTEN KEPERAWATAN
-        $nurseConfig = [
-            'gender' => ['status' => 'core', 'value' => 'both'],
-            'age' => ['status' => 'core', 'min' => 25, 'max' => 65],
-            'education' => ['status' => 'core', 'value' => 'SMA/SMK'],
-            'experience' => ['status' => 'secondary', 'value' => 0],
-            'placement_ready' => ['status' => 'core'],
-            'major' => ['status' => 'core', 'value' => 'Keperawatan'],
-            'custom_documents' => [
-                ['key' => 'str_file', 'label' => 'Surat Tanda Registrasi (STR) / STRTK', 'status' => 'core'],
-                ['key' => 'sertifikat_kompetensi', 'label' => 'Sertifikat Kompetensi Keperawatan', 'status' => 'core']
-            ]
-        ];
-        $postingNurse = JobPosting::create([
-            'title' => 'Asisten Keperawatan Rawat Jalan',
-            'category' => 'Asisten Keperawatan',
-            'description' => 'Membantu tugas keperawatan di klinik rawat jalan UCI, mengawal pemantauan pasien, dan mengelola sterilisasi berkala perkakas medis kotor.',
-            'core_gender' => 'both',
-            'core_min_age' => 25,
-            'core_max_age' => 65,
-            'core_min_education' => 'SMA/SMK',
-            'second_min_experience' => 0,
-            'second_requires_placement_ready' => true,
-            'location_city' => null,
-            'shift_type' => 'shift',
-            'salary_min' => 4800000,
-            'salary_max' => 5800000,
-            'salary_hidden' => false,
-            'is_active' => true,
-            'active_until' => Carbon::now()->addDays(30),
-            'created_by' => $hrd->id,
-            'requirements_config' => $nurseConfig
-        ]);
+        // 1. 5 APPLICANTS FOR DRIVER (Min 25-35, Male, Core: SIM B1, Sec: AGD, SIM C)
+        $createApplicant('Budi Driver Sempurna', 'd1@gmail.com', 'Driver', 'male', '1996-01-01', 'SMA/SMK', 'Umum', 3,
+            ['sertifikat_agd_ambulance' => 'y.pdf', 'lisensi_sim_c_motor' => 'y.pdf', 'lisensi_sim_b1_mobil_berat' => 'y.pdf'], true, null, 'accepted'); // 100% Perfect -> Diterima Final
 
-        // 4. RUNNER
-        $runnerConfig = [
-            'gender' => ['status' => 'core', 'value' => 'male'],
-            'age' => ['status' => 'core', 'min' => 23, 'max' => 35],
-            'education' => ['status' => 'core', 'value' => 'SMA/SMK'],
-            'experience' => ['status' => 'core', 'value' => 0],
-            'placement_ready' => ['status' => 'secondary'],
-            'major' => ['status' => 'core', 'value' => 'Kesehatan, Umum'],
-            'medical_support' => ['status' => 'secondary'],
-            'medical_terms' => ['status' => 'secondary'],
-            'custom_documents' => []
-        ];
-        $postingRunner = JobPosting::create([
-            'title' => 'Runner Penunjang Operasional Medis',
-            'category' => 'Runner',
-            'description' => 'Petugas lapangan yang tanggap untuk mengantarkan penunjang medis darurat ke kamar pasien, menguasai alur koordinasi apoteker & perawat.',
-            'core_gender' => 'male',
-            'core_min_age' => 23,
-            'core_max_age' => 35,
-            'core_min_education' => 'SMA/SMK',
-            'second_min_experience' => 0,
-            'second_requires_placement_ready' => false,
-            'location_city' => 'Tangerang',
-            'shift_type' => 'shift',
-            'salary_min' => 4100000,
-            'salary_max' => 4600000,
-            'salary_hidden' => false,
-            'is_active' => true,
-            'active_until' => Carbon::now()->addDays(30),
-            'created_by' => $hrd->id,
-            'requirements_config' => $runnerConfig
-        ]);
+        $createApplicant('Andi Driver No C', 'd2@gmail.com', 'Driver', 'male', '1995-01-01', 'SMA/SMK', 'Umum', 1,
+            ['sertifikat_agd_ambulance' => 'y.pdf', 'lisensi_sim_b1_mobil_berat' => 'y.pdf'], true, null, 'rejected'); // Misses secondary (SIM C) => Priority: Yes, Score < 100 (Ditolak)
 
-        // 5. GARDENER
-        $gardenerConfig = [
-            'gender' => ['status' => 'core', 'value' => 'male'],
-            'age' => ['status' => 'core', 'min' => 25, 'max' => 40],
-            'education' => ['status' => 'core', 'value' => 'SMA/SMK'],
-            'experience' => ['status' => 'core', 'value' => 0],
-            'placement_ready' => ['status' => 'secondary'],
-            'gardener_tech_understanding' => ['status' => 'core'],
-            'gardener_nursery_skill' => ['status' => 'core'],
-            'gardener_tools_skill' => ['status' => 'secondary'],
-            'custom_documents' => []
-        ];
-        $postingGardener = JobPosting::create([
-            'title' => 'Gardener Area Lansekap PT UCI',
-            'category' => 'Gardener',
-            'description' => 'Mengelola pertamanan luar ruangan rumah sakit & kantor regional UCI Tangerang. Wajib menguasai teknik pembibitan dan pemangkasan artistik lansekap.',
-            'core_gender' => 'male',
-            'core_min_age' => 25,
-            'core_max_age' => 40,
-            'core_min_education' => 'SMA/SMK',
-            'second_min_experience' => 0,
-            'second_requires_placement_ready' => false,
-            'location_city' => 'Tangerang',
-            'shift_type' => 'non_shift',
-            'salary_min' => 4000000,
-            'salary_max' => 4500000,
-            'salary_hidden' => false,
-            'is_active' => true,
-            'active_until' => Carbon::now()->addDays(30),
-            'created_by' => $hrd->id,
-            'requirements_config' => $gardenerConfig
-        ]);
+        $createApplicant('Candra Driver No B1', 'd3@gmail.com', 'Driver', 'male', '1998-01-01', 'SMA/SMK', 'Umum', 0,
+            ['sertifikat_agd_ambulance' => 'y.pdf', 'lisensi_sim_c_motor' => 'y.pdf'], true); // Misses core (SIM B1) => Priority: No
 
-        // ----------------------------------------------------
-        // 4. SEED APPLICATIONS MAPPED TO BOTH PRIORITY AND NON-PRIORITY SKIPS
-        // ----------------------------------------------------
+        $createApplicant('Dani Driver Muda', 'd4@gmail.com', 'Driver', 'male', '2004-01-01', 'SMA/SMK', 'Umum', 0,
+            ['sertifikat_agd_ambulance' => 'y.pdf', 'lisensi_sim_c_motor' => 'y.pdf', 'lisensi_sim_b1_mobil_berat' => 'y.pdf'], true); // Underage (22 yrs) => Priority: No
 
-        // === APPLICATIONS FOR: GARDENER ===
-        // 1. Pelamar Utama (Rian Hidayat) -> Perfect Candidate (Score 100%, Priority: Yes)
-        $app1 = JobApplication::create([
-            'job_posting_id' => $postingGardener->id,
-            'user_id' => $pelamarUtama->id,
-            'gender' => 'male',
-            'birth_date' => '1998-05-15', // Age 28
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum',
-            'experience_years' => 0, // Aligned with required min experience 0 for perfect matching
-            'placement_ready' => true,
-            'additional_documents' => [
-                'gardener_tech_understanding' => true,
-                'gardener_nursery_skill' => true,
-                'gardener_tools_skill' => true,
-            ]
-        ]);
-        $spk = $postingGardener->calculateSpkScore($app1);
-        $app1->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Eka Driver Wanita', 'd5@gmail.com', 'Driver', 'female', '1996-01-01', 'SMA/SMK', 'Umum', 2,
+            ['sertifikat_agd_ambulance' => 'y.pdf', 'lisensi_sim_c_motor' => 'y.pdf', 'lisensi_sim_b1_mobil_berat' => 'y.pdf'], true); // Wrong gender => Priority: No
 
-        // 2. Chandra Wijaya -> Priority, but misses 1 secondary tools checkbox (Score 80%, Priority: Yes)
-        $app2 = JobApplication::create([
-            'job_posting_id' => $postingGardener->id,
-            'user_id' => $users['chandra']->id,
-            'gender' => 'male',
-            'birth_date' => '2002-11-05', // Age 23 (but configuration min is 25, wait! Age 23 is below 25, so Chandra will be non-priority due to age!)
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'gardener_tech_understanding' => true,
-                'gardener_nursery_skill' => true,
-                'gardener_tools_skill' => false,
-            ]
-        ]);
-        $spk = $postingGardener->calculateSpkScore($app2);
-        $app2->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        // 2. 5 APPLICANTS FOR NURSE (Min 25-65, Both, Core: Keperawatan, STR, Kompetensi)
+        $createApplicant('Siti Nurse Sempurna', 'n1@gmail.com', 'Nurse', 'female', '1996-01-01', 'D3', 'Keperawatan', 2,
+            ['str_file' => 'y.pdf', 'sertifikat_kompetensi' => 'y.pdf'], true, null, 'accepted'); // 100% Perfect -> Diterima Final
 
-        // 3. Eko Prasetyo -> Priority Candidate with 0 exp alignment (Score 100%, Priority: Yes)
-        $app3 = JobApplication::create([
-            'job_posting_id' => $postingGardener->id,
-            'user_id' => $users['eko']->id,
-            'gender' => 'male',
-            'birth_date' => '1992-04-18', // Age 34
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'gardener_tech_understanding' => true,
-                'gardener_nursery_skill' => true,
-                'gardener_tools_skill' => true,
-            ]
-        ]);
-        $spk = $postingGardener->calculateSpkScore($app3);
-        $app3->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Agus Nurse Pria', 'n2@gmail.com', 'Nurse', 'male', '1998-01-01', 'SMA/SMK', 'Keperawatan', 1,
+            ['str_file' => 'y.pdf', 'sertifikat_kompetensi' => 'y.pdf'], true, null, 'rejected'); // Perfect, male => Priority: Yes, Ditolak
 
-        // 4. Budi Santoso -> Non-Priority because age 29, but leaves core "gardener_tech_understanding" unchecked (Priority: No)
-        $app4 = JobApplication::create([
-            'job_posting_id' => $postingGardener->id,
-            'user_id' => $users['budi']->id,
-            'gender' => 'male',
-            'birth_date' => '1996-08-20', // Age 29
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'gardener_tech_understanding' => false, // Misses core checkbox!
-                'gardener_nursery_skill' => true,
-                'gardener_tools_skill' => true,
-            ]
-        ]);
-        $spk = $postingGardener->calculateSpkScore($app4);
-        $app4->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Rini Nurse No STR', 'n3@gmail.com', 'Nurse', 'female', '2000-01-01', 'D3', 'Keperawatan', 0,
+            ['sertifikat_kompetensi' => 'y.pdf'], true); // Misses core doc (STR) => Priority: No
 
+        $createApplicant('Dina Nurse Umum', 'n4@gmail.com', 'Nurse', 'female', '1992-01-01', 'SMA/SMK', 'Umum', 0,
+            ['str_file' => 'y.pdf', 'sertifikat_kompetensi' => 'y.pdf'], true); // Wrong major (Umum) => Priority: No
 
-        // === APPLICATIONS FOR: RUNNER ===
-        // 1. Chandra Wijaya -> Perfect Runner (Score 100%, Priority: Yes)
-        $appRunner1 = JobApplication::create([
-            'job_posting_id' => $postingRunner->id,
-            'user_id' => $users['chandra']->id,
-            'gender' => 'male',
-            'birth_date' => '2002-11-05', // Age 23
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'medical_support' => true,
-                'medical_terms' => true,
-            ]
-        ]);
-        $spk = $postingRunner->calculateSpkScore($appRunner1);
-        $appRunner1->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Ayu Nurse Muda', 'n5@gmail.com', 'Nurse', 'female', '2005-01-01', 'D3', 'Keperawatan', 0,
+            ['str_file' => 'y.pdf', 'sertifikat_kompetensi' => 'y.pdf'], true); // Underage (21 yrs) => Priority: No
 
-        // 2. Fajar Sidik -> Non-Priority due to age 21 (min configuration is 23)
-        $appRunner2 = JobApplication::create([
-            'job_posting_id' => $postingRunner->id,
-            'user_id' => $users['fajar']->id,
-            'gender' => 'male',
-            'birth_date' => '2004-10-10', // Age 21
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'medical_support' => true,
-                'medical_terms' => true,
-            ]
-        ]);
-        $spk = $postingRunner->calculateSpkScore($appRunner2);
-        $appRunner2->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        // 3. 5 APPLICANTS FOR CLEANING SERVICE (Min 25-65, Both, Core: SMA, Placement, Sec: SIM C)
+        $createApplicant('Joko CS Sempurna', 'c1@gmail.com', 'CS', 'male', '1991-01-01', 'SMA/SMK', 'Umum', 3,
+            ['sim_c_aktif' => 'y.pdf'], true, 'Tangerang', 'accepted'); // 100% Perfect -> Diterima Final
 
+        $createApplicant('Wati CS Wanita', 'c2@gmail.com', 'CS', 'female', '1986-01-01', 'SMA/SMK', 'Umum', 2,
+            ['sim_c_aktif' => 'y.pdf'], true, 'Jakarta', 'rejected'); // Perfect, female => Priority: Yes, Ditolak
 
-        // === APPLICATIONS FOR: ASISTEN KEPERAWATAN ===
-        // 1. Ani Lestari -> Perfect Assistant Nurse (Score 100%, Priority: Yes)
-        $appNurse1 = JobApplication::create([
-            'job_posting_id' => $postingNurse->id,
-            'user_id' => $users['ani']->id,
-            'gender' => 'female',
-            'birth_date' => '2000-03-12', // Age 26
-            'education_level' => 'SMA/SMK',
-            'major' => 'Keperawatan',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'str_file' => 'applications/dummy_str.pdf',
-                'sertifikat_kompetensi' => 'applications/dummy_cert.pdf'
-            ]
-        ]);
-        $spk = $postingNurse->calculateSpkScore($appNurse1);
-        $appNurse1->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Heri CS No SIM', 'c3@gmail.com', 'CS', 'male', '1998-01-01', 'SMA/SMK', 'Umum', 1,
+            [], true, 'Tangerang'); // Misses secondary (SIM C) => Priority: Yes, Score < 100
 
-        // 2. Dewi Rahmawati -> Priority with higher D3 education rank (Score 100%, Priority: Yes)
-        $appNurse2 = JobApplication::create([
-            'job_posting_id' => $postingNurse->id,
-            'user_id' => $users['dewi']->id,
-            'gender' => 'female',
-            'birth_date' => '1999-07-25', // Age 26
-            'education_level' => 'D3',
-            'major' => 'Keperawatan',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'str_file' => 'applications/dummy_str2.pdf',
-                'sertifikat_kompetensi' => 'applications/dummy_cert2.pdf'
-            ]
-        ]);
-        $spk = $postingNurse->calculateSpkScore($appNurse2);
-        $appNurse2->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Bagas CS Muda', 'c4@gmail.com', 'CS', 'male', '2004-01-01', 'SMA/SMK', 'Umum', 0,
+            ['sim_c_aktif' => 'y.pdf'], true, 'Tangerang'); // Underage (22 yrs) => Priority: No
 
-        // 3. Eko Prasetyo -> Non-Priority because major is 'Umum' (Mandatory core is 'Keperawatan')
-        $appNurse3 = JobApplication::create([
-            'job_posting_id' => $postingNurse->id,
-            'user_id' => $users['eko']->id,
-            'gender' => 'male',
-            'birth_date' => '1992-04-18', // Age 34
-            'education_level' => 'SMA/SMK',
-            'major' => 'Umum', // Wrong major!
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'str_file' => 'applications/dummy_str3.pdf',
-                'sertifikat_kompetensi' => 'applications/dummy_cert3.pdf'
-            ]
-        ]);
-        $spk = $postingNurse->calculateSpkScore($appNurse3);
-        $appNurse3->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Linda CS Tolak Penempatan', 'c5@gmail.com', 'CS', 'female', '1996-01-01', 'SMA/SMK', 'Umum', 0,
+            ['sim_c_aktif' => 'y.pdf'], false, null); // Misses core (Placement) => Priority: No
 
+        // 4. 5 APPLICANTS FOR RUNNER (Min 23-35, Male, Core: SMA, Sec: Med Support, Med Terms)
+        $createApplicant('Fahmi Runner Sempurna', 'r1@gmail.com', 'Runner', 'male', '2001-01-01', 'SMA/SMK', 'Umum', 1,
+            ['medical_support' => true, 'medical_terms' => true], true, null, 'accepted'); // 100% Perfect
 
-        // === APPLICATIONS FOR: DRIVER AMBULANCE ===
-        // 1. Budi Santoso -> Perfect Ambulance Driver (Score 100%, Priority: Yes)
-        $appDriver1 = JobApplication::create([
-            'job_posting_id' => $postingDriver->id,
-            'user_id' => $users['budi']->id,
-            'gender' => 'male',
-            'birth_date' => '1996-08-20', // Age 29
-            'education_level' => 'SMA/SMK',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'sertifikat_agd_ambulance' => 'applications/dummy_agd.pdf',
-                'lisensi_sim_c_motor' => 'applications/dummy_simc.pdf',
-                'lisensi_sim_b1_mobil_berat' => 'applications/dummy_simb1.pdf'
-            ]
-        ]);
-        $spk = $postingDriver->calculateSpkScore($appDriver1);
-        $appDriver1->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Rizky Runner No Support', 'r2@gmail.com', 'Runner', 'male', '1998-01-01', 'SMA/SMK', 'Umum', 0,
+            ['medical_support' => false, 'medical_terms' => true], true, null, 'rejected'); // Misses secondary (Med support) => Priority: Yes, Score < 100, Ditolak
 
-        // 2. Rian Hidayat (Pelamar Utama) -> Non-Priority because misses mandatory core SIM B1 Mobil Berat upload (Priority: No)
-        $appDriver2 = JobApplication::create([
-            'job_posting_id' => $postingDriver->id,
-            'user_id' => $pelamarUtama->id,
-            'gender' => 'male',
-            'birth_date' => '1998-05-15', // Age 28
-            'education_level' => 'SMA/SMK',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'additional_documents' => [
-                'sertifikat_agd_ambulance' => 'applications/dummy_agd.pdf',
-                'lisensi_sim_c_motor' => 'applications/dummy_simc.pdf'
-                // Missing SIM B1!
-            ]
-        ]);
-        $spk = $postingDriver->calculateSpkScore($appDriver2);
-        $appDriver2->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Gani Runner Polos', 'r3@gmail.com', 'Runner', 'male', '2002-01-01', 'SMA/SMK', 'Umum', 0,
+            ['medical_support' => false, 'medical_terms' => false], true); // Misses both secondary => Priority: Yes, Score lower
 
+        $createApplicant('Tomi Runner Muda', 'r4@gmail.com', 'Runner', 'male', '2006-01-01', 'SMA/SMK', 'Umum', 0,
+            ['medical_support' => true, 'medical_terms' => true], true); // Underage (20 yrs) => Priority: No
 
-        // === APPLICATIONS FOR: CLEANING SERVICE ===
-        // 1. Eko Prasetyo -> Perfect Cleaning Service (Score 100%, Priority: Yes)
-        $appCS1 = JobApplication::create([
-            'job_posting_id' => $postingCS->id,
-            'user_id' => $users['eko']->id,
-            'gender' => 'male',
-            'birth_date' => '1992-04-18', // Age 34
-            'education_level' => 'SMA/SMK',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'placement_choice' => 'Jakarta Barat',
-            'additional_documents' => [
-                'sim_c_aktif' => 'applications/dummy_simc_cs.pdf'
-            ]
-        ]);
-        $spk = $postingCS->calculateSpkScore($appCS1);
-        $appCS1->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        $createApplicant('Siska Runner Wanita', 'r5@gmail.com', 'Runner', 'female', '2001-01-01', 'SMA/SMK', 'Umum', 0,
+            ['medical_support' => true, 'medical_terms' => true], true); // Wrong gender => Priority: No
 
-        // 2. Rian Hidayat -> Priority, misses optional custom document SIM C (Score 80%, Priority: Yes)
-        $appCS2 = JobApplication::create([
-            'job_posting_id' => $postingCS->id,
-            'user_id' => $pelamarUtama->id,
-            'gender' => 'male',
-            'birth_date' => '1998-05-15', // Age 28
-            'education_level' => 'SMA/SMK',
-            'experience_years' => 0,
-            'placement_ready' => true,
-            'placement_choice' => 'Jakarta Barat',
-            'additional_documents' => [] // leaves SIM C document empty
-        ]);
-        $spk = $postingCS->calculateSpkScore($appCS2);
-        $appCS2->update(['is_priority' => $spk['is_priority'], 'matching_score' => $spk['matching_score']]);
+        // 5. 5 APPLICANTS FOR GARDENER (Min 25-40, Male, Core: Tech, Nursery. Sec: Tools)
+        $createApplicant('Wahyu Gardener Sempurna', 'g1@gmail.com', 'Gardener', 'male', '1996-01-01', 'SMA/SMK', 'Umum', 2,
+            ['gardener_tech_understanding' => true, 'gardener_nursery_skill' => true, 'gardener_tools_skill' => true], true, null, 'accepted'); // 100% Perfect
+
+        $createApplicant('Dedi Gardener No Tools', 'g2@gmail.com', 'Gardener', 'male', '1998-01-01', 'SMA/SMK', 'Umum', 1,
+            ['gardener_tech_understanding' => true, 'gardener_nursery_skill' => true, 'gardener_tools_skill' => false], true, null, 'rejected'); // Misses secondary (Tools) => Priority: Yes, Score < 100, Ditolak
+
+        $createApplicant('Tono Gardener No Tech', 'g3@gmail.com', 'Gardener', 'male', '1999-01-01', 'SMA/SMK', 'Umum', 0,
+            ['gardener_tech_understanding' => false, 'gardener_nursery_skill' => true, 'gardener_tools_skill' => true], true); // Misses core (Tech) => Priority: No
+
+        $createApplicant('Aldo Gardener Muda', 'g4@gmail.com', 'Gardener', 'male', '2004-01-01', 'SMA/SMK', 'Umum', 0,
+            ['gardener_tech_understanding' => true, 'gardener_nursery_skill' => true, 'gardener_tools_skill' => true], true); // Underage (22 yrs) => Priority: No
+
+        $createApplicant('Yuni Gardener Wanita', 'g5@gmail.com', 'Gardener', 'female', '1994-01-01', 'SMA/SMK', 'Umum', 1,
+            ['gardener_tech_understanding' => true, 'gardener_nursery_skill' => true, 'gardener_tools_skill' => true], true); // Wrong gender => Priority: No
     }
 }

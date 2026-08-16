@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Penerimaan Karyawan Baru PT. UCI</title>
+    <title>Hasil Wawancara Tahap 1 PT. UCI</title>
     <style>
         body { font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333333; background-color: #f8fafc; margin: 0; padding: 0; }
         .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
@@ -29,10 +29,10 @@
             <div class="greeting">Halo, {{ $application->user->name }}!</div>
             
             <div class="message-box">
-                <p>Selamat! Anda telah <strong>DITERIMA</strong> secara Final untuk bergabung bersama kami.</p>
+                <p>Selamat! Anda dinyatakan <strong>LOLOS</strong> Wawancara Tahap 1.</p>
             </div>
 
-            <p>Berdasarkan seluruh tahapan seleksi yang telah dilakukan, kami sangat senang dapat menyambut Anda di tim kami untuk posisi berikut:</p>
+            <p>Berdasarkan hasil wawancara yang telah dilakukan, Anda direkomendasikan untuk maju ke tahap <strong>Seleksi Final (Approval Pimpinan)</strong> untuk posisi berikut:</p>
             
             <div class="job-details">
                 <h3>Detail Posisi</h3>
@@ -42,7 +42,7 @@
                 </ul>
             </div>
 
-            <p>Tim HRD kami akan segera menghubungi Anda melalui Nomor Telepon / WhatsApp atau Email ini untuk menginformasikan terkait jadwal onboarding dan penandatanganan kontrak.</p>
+            <p>Tim HRD kami sedang meninjau kembali profil Anda untuk tahap persetujuan akhir. Harap tunggu informasi lebih lanjut.</p>
             
             <p>Silakan pantau terus dashboard pelamar Anda secara berkala melalui tombol di bawah ini:</p>
 

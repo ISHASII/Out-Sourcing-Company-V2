@@ -57,7 +57,7 @@
                 <div>
                     <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">Manajemen Pelamar</span>
                     <h3 class="text-2xl font-bold text-slate-800 tracking-tight mt-2">{{ $posting->title }}</h3>
-                    <p class="text-xs text-slate-500 mt-1">Kategori Kerja: <strong class="text-slate-700 font-semibold">{{ $posting->category }}</strong></p>
+                    <p class="text-xs text-slate-500 mt-1">Kategori Kerja: <strong class="text-slate-700 font-semibold">{{ $posting->category }}</strong> &bull; Mitra: <strong class="text-slate-700 font-semibold">{{ $posting->mitra_name }}</strong></p>
                 </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -415,6 +415,25 @@
                     </div>
 
                     @include('hrd.hiring.partials.applicant_table', ['applications' => $nonPriorityApplications, 'isCompleted' => true, 'xDataPrefix' => 'nonPriority', 'isReadOnly' => true])
+
+                </div>
+                <!-- Lolos Seleksi 1 Table Card -->
+                <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-100 shadow-sm relative overflow-hidden mt-6" x-data="{ lolos1Page: 1, lolos1PerPage: 10, totalLolos1: {{ $lolosSeleksi1Applications->count() }} }">
+                    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-orange-500"></div>
+                    
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <div>
+                            <h4 class="text-sm font-extrabold text-slate-700 uppercase tracking-wider flex items-center gap-2.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span> Lolos Seleksi 1
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-1">Kandidat yang telah lolos wawancara awal dan menunggu persetujuan akhir.</p>
+                        </div>
+                        <span class="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-3 py-1 rounded-xl">
+                            {{ $lolosSeleksi1Applications->count() }} Pelamar
+                        </span>
+                    </div>
+
+                    @include('hrd.hiring.partials.applicant_table', ['applications' => $lolosSeleksi1Applications, 'isCompleted' => true, 'xDataPrefix' => 'lolos1', 'isReadOnly' => true])
 
                 </div>
 

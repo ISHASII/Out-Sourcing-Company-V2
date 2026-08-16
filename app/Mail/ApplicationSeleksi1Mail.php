@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ApplicationAcceptedMail extends Mailable
+class ApplicationSeleksi1Mail extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -30,7 +30,7 @@ class ApplicationAcceptedMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Selamat Bergabung! - ' . $this->application->posting->title . ' di PT. UCI',
+            subject: 'Hasil Wawancara - ' . $this->application->posting->title . ' di PT. UCI',
         );
     }
 
@@ -40,7 +40,7 @@ class ApplicationAcceptedMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.application-accepted',
+            view: 'emails.application-seleksi1',
         );
     }
 

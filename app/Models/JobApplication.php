@@ -26,6 +26,7 @@ class JobApplication extends Model
         'is_priority',
         'matching_score',
         'spk_details',
+        'mitra_id',
         'status',
         'interview_status',
     ];
@@ -40,6 +41,11 @@ class JobApplication extends Model
     ];
 
     protected $appends = ['age'];
+
+    public function mitra(): BelongsTo
+    {
+        return $this->belongsTo(Mitra::class, 'mitra_id');
+    }
 
     public function posting(): BelongsTo
     {
@@ -60,3 +66,4 @@ class JobApplication extends Model
         return Carbon::parse($this->birth_date)->age;
     }
 }
+

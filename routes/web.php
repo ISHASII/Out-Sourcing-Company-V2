@@ -53,12 +53,15 @@ Route::middleware(['auth'])->group(function () {
 
         // Application Decision & PDF routes
         Route::post('/applications/{jobApplication}/accept', [HrdHiringController::class, 'acceptApplication'])->name('hrd.applications.accept');
+        Route::post('/applications/{jobApplication}/mark-lolos-seleksi-1', [HrdHiringController::class, 'markLolosSeleksi1'])->name('hrd.applications.markLolosSeleksi1');
         Route::post('/applications/{jobApplication}/reject', [HrdHiringController::class, 'rejectApplication'])->name('hrd.applications.reject');
         Route::post('/applications/{jobApplication}/mark-valid', [HrdHiringController::class, 'markValid'])->name('hrd.applications.markValid');
         Route::post('/applications/{jobApplication}/mark-invalid', [HrdHiringController::class, 'markInvalid'])->name('hrd.applications.markInvalid');
+        Route::post('/applications/{jobApplication}/direct-approve', [HrdHiringController::class, 'directApprove'])->name('hrd.applications.directApprove');
         Route::get('/applications/{jobApplication}/pdf', [HrdHiringController::class, 'downloadPdf'])->name('hrd.applications.pdf');
         
         Route::post('/hiring/{jobPosting}/send-report', [HrdHiringController::class, 'sendReportToPimpinan'])->name('hrd.hiring.sendReport');
+        Route::get('/hiring/{jobPosting}/download-report', [HrdHiringController::class, 'downloadReportPdf'])->name('hrd.hiring.downloadReport');
 
         // Kategori Pekerjaan CRUD (Dedicated)
         Route::get('/kategori-pekerjaan', [JobCategoryController::class, 'index'])->name('hrd.kategori.index');
@@ -145,3 +148,4 @@ Route::post('/forgot-password/verify', [AuthController::class, 'verifyPasswordRe
 Route::post('/forgot-password/resend', [AuthController::class, 'resendPasswordOtp'])->name('password.resendOtp');
 Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->name('password.reset');
 Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('password.update');
+

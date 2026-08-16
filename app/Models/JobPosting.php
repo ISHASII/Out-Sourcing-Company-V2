@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class JobPosting extends Model
 {
@@ -11,6 +12,8 @@ class JobPosting extends Model
         'title',
         'category',
         'description',
+        'mitra_id',
+        'custom_mitra_name',
         'core_gender',
         'core_min_age',
         'core_max_age',
@@ -48,6 +51,24 @@ class JobPosting extends Model
     public function applications(): HasMany
     {
         return $this->hasMany(JobApplication::class);
+    }
+
+    public function mitra(): BelongsTo
+    {
+        return $this->belongsTo(Mitra::class);
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function getMitraNameAttribute(): string
+    {
+        if ($this->mitra_id) {
+            return $this->mitra->name;
+        }
+        return $this->custom_mitra_name ?? '-';
     }
 
     public function isExpired(): bool

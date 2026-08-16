@@ -93,23 +93,47 @@ class PimpinanController extends Controller
     // ----------------------------------------------------------------
     //  DATA PELAMAR TERPILIH (Read-Only)
     // ----------------------------------------------------------------
-    public function applicants()
+    public function applicants(\Illuminate\Http\Request $request)
     {
-        $acceptedApplicants = JobApplication::with(['user', 'posting'])
-            ->where('status', 'accepted')
-            ->latest()
-            ->paginate(10);
+        $query = JobApplication::with(['user.profile', 'posting.mitra'])
+            ->where('status', 'accepted');
+
+        if ($request->filled('mitra_id')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('mitra_id', $request->mitra_id)
+                  ->orWhere(function ($q2) use ($request) {
+                      $q2->whereNull('mitra_id')
+                         ->whereHas('posting', function($q3) use ($request) {
+                             $q3->where('mitra_id', $request->mitra_id);
+                         });
+                  });
+            });
+        }
+
+        $acceptedApplicants = $query->latest()->paginate(10)->withQueryString();
+        $mitras = \App\Models\Mitra::orderBy('name')->get();
             
-        return view('pimpinan.applicants.index', compact('acceptedApplicants'));
+        return view('pimpinan.applicants.index', compact('acceptedApplicants', 'mitras'));
     }
 
     // ----------------------------------------------------------------
     //  LAPORAN ADMIN
     // ----------------------------------------------------------------
-    public function laporan()
+    public function laporan(\Illuminate\Http\Request $request)
     {
-        $reports = PimpinanReport::with('jobPosting')->latest()->paginate(10);
-        return view('pimpinan.laporan', compact('reports'));
+        $query = PimpinanReport::with(['jobPosting.createdBy']);
+
+        if ($request->filled('admin_id')) {
+            $query->whereHas('jobPosting', function($q) use ($request) {
+                $q->where('created_by', $request->admin_id);
+            });
+        }
+
+        $reports = $query->latest()->paginate(10)->withQueryString();
+        
+        $admins = \App\Models\User::where('role', 'hrd')->orderBy('name')->get();
+
+        return view('pimpinan.laporan', compact('reports', 'admins'));
     }
 
     // ----------------------------------------------------------------
@@ -126,6 +150,7 @@ class PimpinanController extends Controller
         $allApplications = collect();
         $priorityApplications = collect();
         $nonPriorityApplications = collect();
+        $lolosSeleksi1Applications = collect();
         $interviewPassedApplications = collect();
         $rejectedApplications = collect();
         $spkDetailsMap = [];
@@ -134,7 +159,7 @@ class PimpinanController extends Controller
             $priorityApplications = $jobPosting->applications()
                 ->with(['user.profile'])
                 ->where('is_priority', true)
-                ->where('status', '!=', 'rejected')
+                ->whereIn('status', ['pending', 'spk_evaluated'])
                 ->where(function($q) {
                     $q->whereNull('interview_status')->orWhere('interview_status', '!=', 'valid');
                 })
@@ -147,7 +172,7 @@ class PimpinanController extends Controller
             $nonPriorityApplications = $jobPosting->applications()
                 ->with(['user.profile'])
                 ->where('is_priority', false)
-                ->where('status', '!=', 'rejected')
+                ->whereIn('status', ['pending', 'spk_evaluated'])
                 ->where(function($q) {
                     $q->whereNull('interview_status')->orWhere('interview_status', '!=', 'valid');
                 })
@@ -166,6 +191,12 @@ class PimpinanController extends Controller
                 $spkDetailsMap[$application->id] = $application->spk_details ?: $jobPosting->calculateSpkScoreDetailed($application);
             }
 
+            $lolosSeleksi1Applications = $jobPosting->applications()
+                ->with(['user.profile'])
+                ->where('status', 'lolos_seleksi_1')
+                ->latest()
+                ->get();
+
             $interviewPassedApplications = $jobPosting->applications()
                 ->with(['user.profile'])
                 ->where('status', 'accepted')
@@ -175,7 +206,7 @@ class PimpinanController extends Controller
         } else {
             $allApplications = $jobPosting->applications()
                 ->with(['user.profile'])
-                ->where('status', '!=', 'rejected')
+                ->whereIn('status', ['pending', 'spk_evaluated'])
                 ->latest()
                 ->get();
 
@@ -191,9 +222,11 @@ class PimpinanController extends Controller
             'allApplications' => $allApplications,
             'priorityApplications' => $priorityApplications,
             'nonPriorityApplications' => $nonPriorityApplications,
+            'lolosSeleksi1Applications' => $lolosSeleksi1Applications,
             'interviewPassedApplications' => $interviewPassedApplications,
             'rejectedApplications' => $rejectedApplications,
             'spkDetailsMap' => $spkDetailsMap,
         ]);
     }
 }
+

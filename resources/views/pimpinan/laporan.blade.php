@@ -15,8 +15,20 @@
 
     {{-- Laporan Table --}}
     <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100">
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h4 class="text-sm font-bold text-slate-700">Riwayat Laporan</h4>
+            
+            <form action="{{ url()->current() }}" method="GET" class="flex items-center gap-2">
+                <label for="admin_id" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Filter Admin:</label>
+                <select name="admin_id" id="admin_id" onchange="this.form.submit()" class="text-sm border-slate-200 rounded-lg px-3 py-1.5 focus:ring-[#003d7c] focus:border-[#003d7c]">
+                    <option value="">Semua Admin (HRD)</option>
+                    @foreach($admins as $admin)
+                        <option value="{{ $admin->id }}" {{ request('admin_id') == $admin->id ? 'selected' : '' }}>
+                            {{ $admin->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </form>
         </div>
 
         @if($reports->isEmpty())

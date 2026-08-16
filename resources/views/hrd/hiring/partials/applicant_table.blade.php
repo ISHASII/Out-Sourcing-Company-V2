@@ -52,6 +52,11 @@
                             <div>
                                 <div class="font-bold text-slate-800 text-sm">{{ $application->user->name }}</div>
                                 <div class="text-[10px] text-slate-400 mt-1 font-semibold">{{ $application->gender === 'male' ? 'Pria' : 'Wanita' }}, {{ $application->age ?? '-' }} Tahun</div>
+                                @if($application->status === 'accepted')
+                                    <div class="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
+                                        Mitra: {{ $application->posting->mitra_name }}
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </td>
@@ -97,21 +102,52 @@
                     @if(!$isReadOnly)
                     <td class="py-4 text-center">
                         <div class="flex items-center justify-center gap-1.5">
-                            @if($application->status === 'pending')
+                            {{-- Show Button --}}
+                            <button type="button" data-app="{{ json_encode($application) }}" @click.prevent="$dispatch('open-applicant', JSON.parse($el.dataset.app))" class="inline-flex items-center justify-center p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 rounded-xl transition-all border border-blue-100/50 shadow-sm" title="Lihat Detail Pelamar">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            </button>
+                            @if(in_array($application->status, ['pending', 'spk_evaluated']))
+                                <form id="seleksi1-form-{{ $application->id }}" action="{{ route('hrd.applications.markLolosSeleksi1', $application) }}" method="POST" class="hidden">@csrf</form>
+                                <form id="reject-form-{{ $application->id }}" action="{{ route('hrd.applications.reject', $application) }}" method="POST" class="hidden">@csrf</form>
+                                <button @click="
+                                    @if(!$isCompleted)
+                                        alert('Tindakan Ditolak!\n\nAnda harus menekan tombol \'Eksekusi Profile Matching\' terlebih dahulu sebelum bisa memproses pelamar.'); return;
+                                    @endif
+                                    $dispatch('open-confirm-modal', {
+                                        title: 'Lolos Wawancara 1',
+                                        message: 'Apakah pelamar {{ addslashes($application->user->name) }} beneran sesuai hasil wawancara?',
+                                        confirmText: 'Ya, Sesuai (Ceklis)', type: 'info', actionType: 'submit',
+                                        formElement: document.getElementById('seleksi1-form-{{ $application->id }}')
+                                    })" class="inline-flex items-center justify-center p-2 text-amber-600 bg-amber-50 hover:bg-amber-100 hover:text-amber-700 rounded-xl transition-all border border-amber-100/50 shadow-sm" title="Lolos Wawancara 1">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                                </button>
+                                <button @click="
+                                    @if(!$isCompleted)
+                                        alert('Tindakan Ditolak!\n\nAnda harus menekan tombol \'Eksekusi Profile Matching\' terlebih dahulu sebelum bisa menolak pelamar.'); return;
+                                    @endif
+                                    $dispatch('open-confirm-modal', {
+                                        title: 'Tolak Pelamar',
+                                        message: 'Apakah Anda yakin ingin menolak pelamar {{ addslashes($application->user->name) }} karena tidak sesuai?',
+                                        confirmText: 'Ya, Tolak (Silang)', type: 'danger', actionType: 'submit',
+                                        formElement: document.getElementById('reject-form-{{ $application->id }}')
+                                    })" class="inline-flex items-center justify-center p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition-all border border-rose-100/50 shadow-sm" title="Tolak Pelamar">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                </button>
+                            @elseif($application->status === 'lolos_seleksi_1')
                                 <form id="accept-form-{{ $application->id }}" action="{{ route('hrd.applications.accept', $application) }}" method="POST" class="hidden">@csrf</form>
                                 <form id="reject-form-{{ $application->id }}" action="{{ route('hrd.applications.reject', $application) }}" method="POST" class="hidden">@csrf</form>
                                 <button @click="$dispatch('open-confirm-modal', {
-                                        title: 'Terima Pelamar',
-                                        message: 'Apakah Anda yakin ingin menerima pelamar {{ $application->user->name }}?',
-                                        confirmText: 'Ya, Terima', type: 'info', actionType: 'submit',
+                                        title: 'Approval Final',
+                                        message: 'Apakah Anda yakin ingin menyetujui pelamar {{ addslashes($application->user->name) }} secara final?',
+                                        confirmText: 'Ya, Terima Final', type: 'info', actionType: 'submit',
                                         formElement: document.getElementById('accept-form-{{ $application->id }}')
-                                    })" class="inline-flex items-center justify-center p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 rounded-xl transition-all border border-emerald-100/50 shadow-sm" title="Terima Pelamar">
+                                    })" class="inline-flex items-center justify-center p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-700 rounded-xl transition-all border border-emerald-100/50 shadow-sm" title="Terima Final">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"></path></svg>
                                 </button>
                                 <button @click="$dispatch('open-confirm-modal', {
                                         title: 'Tolak Pelamar',
-                                        message: 'Apakah Anda yakin ingin menolak pelamar {{ $application->user->name }}?',
-                                        confirmText: 'Ya, Tolak', type: 'danger', actionType: 'submit',
+                                        message: 'Apakah Anda yakin ingin menolak pelamar {{ addslashes($application->user->name) }}?',
+                                        confirmText: 'Ya, Tolak Final', type: 'danger', actionType: 'submit',
                                         formElement: document.getElementById('reject-form-{{ $application->id }}')
                                     })" class="inline-flex items-center justify-center p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 hover:text-rose-700 rounded-xl transition-all border border-rose-100/50 shadow-sm" title="Tolak Pelamar">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -346,3 +382,4 @@
         </button>
     </div>
 </div>
+

@@ -4,6 +4,8 @@
 
 @section('dashboard-content')
     <div class="space-y-6 animate-fade-in" x-data="{
+        activeApplicant: null,
+        activeApprove: null,
         category: '{{ old('category', '') }}',
         allCriteria: {{ json_encode($allCriteria) }},
         rejectedApplicationsGrouped: {{ json_encode($rejectedApplicationsGrouped) }},
@@ -129,7 +131,7 @@
                 <!-- Section 1: Informasi Dasar -->
                 <div class="bg-slate-50/50 p-6 rounded-2xl border border-slate-200/60 space-y-4">
                     <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200/55 pb-2">Informasi Dasar Lowongan</h4>
-                    <div class="grid md:grid-cols-2 gap-4">
+                    <div class="grid md:grid-cols-3 gap-4">
                         <div>
                             <label class="text-xs font-bold text-slate-600">Judul Lowongan</label>
                             <input type="text" name="title" value="{{ old('title') }}" placeholder="Contoh: Driver Medis"
@@ -148,6 +150,44 @@
                                 @endforeach
                             </select>
                             @error('category')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-slate-600">Nama Mitra (Klien)</label>
+                            <div x-data="{ 
+                                    mitraSelection: '{{ old('mitra_input', '') }}',
+                                    isCustom() {
+                                        if(!this.mitraSelection) return false;
+                                        @foreach($mitras as $mitra)
+                                            if(this.mitraSelection === '{{ addslashes($mitra->name) }}') return false;
+                                        @endforeach
+                                        return true;
+                                    }
+                                 }" 
+                                 x-init="if(isCustom() && mitraSelection !== '') mitraSelection = 'custom'">
+                                <select x-show="mitraSelection !== 'custom'" 
+                                        @change="if($event.target.value === 'custom') { mitraSelection = 'custom'; setTimeout(() => $refs.customInput.focus(), 50); }"
+                                        :name="mitraSelection !== 'custom' ? 'mitra_input' : ''"
+                                        class="w-full mt-2 px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 text-sm transition-all bg-white" required>
+                                    <option value="">-- Pilih Mitra --</option>
+                                    @foreach($mitras as $mitra)
+                                        <option value="{{ $mitra->name }}" @selected(old('mitra_input') === $mitra->name)>{{ $mitra->name }}</option>
+                                    @endforeach
+                                    <option value="custom" class="font-bold text-blue-600">+ Ketik Custom Baru...</option>
+                                </select>
+                                
+                                <div x-show="mitraSelection === 'custom'" class="relative mt-2" x-cloak>
+                                    <input type="text" x-ref="customInput" 
+                                           :name="mitraSelection === 'custom' ? 'mitra_input' : ''" 
+                                           value="{{ old('mitra_input') }}"
+                                           placeholder="Ketik nama mitra baru..."
+                                           class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 focus:outline-none focus:border-blue-500 text-sm transition-all"
+                                           :required="mitraSelection === 'custom'">
+                                    <button type="button" @click="mitraSelection = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors" title="Batal, pilih dari daftar">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            @error('mitra_input')<p class="text-xs text-rose-600 mt-1">{{ $message }}</p>@enderror
                         </div>
                     </div>
 
@@ -190,15 +230,31 @@
                                                 <span x-text="app.user.name"></span>
                                             </td>
                                             <td class="px-3 py-2 text-slate-500" x-text="app.user.email"></td>
-                                            <td class="px-3 py-2 text-center text-slate-600" x-text="app.user.profile.age + ' thn'"></td>
+                                            <td class="px-3 py-2 text-center text-slate-600" x-text="(new Date().getFullYear() - new Date(app.user.profile.birth_date).getFullYear()) + ' thn'"></td>
                                             <td class="px-3 py-2 text-center text-slate-600" x-text="app.user.profile.education_level"></td>
                                             <td class="px-3 py-2 text-center font-bold text-rose-600" x-text="app.matching_score ? app.matching_score + '%' : '-'"></td>
                                             <td class="px-3 py-2 text-center">
-                                                <a :href="'https://wa.me/' + (app.user.profile.phone.replace(/[^0-9]/g, '').startsWith('0') ? '62' + app.user.profile.phone.replace(/[^0-9]/g, '').substring(1) : app.user.profile.phone.replace(/[^0-9]/g, ''))"
-                                                   target="_blank"
-                                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[10px] uppercase rounded-xl transition-all border border-emerald-250 shadow-sm">
-                                                    Hubungi WA
-                                                </a>
+                                                <div class="flex justify-center items-center gap-1.5">
+    <!-- Show (Eye Icon) -->
+    <button type="button" @click.prevent="activeApplicant = app"
+            class="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition-all border border-blue-200 shadow-sm"
+            title="Lihat Detail">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+    </button>
+    <!-- Approve (Check Icon) -->
+    <button type="button" @click.prevent="activeApprove = app"
+            class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg transition-all border border-indigo-200 shadow-sm"
+            title="Setujui Pelamar">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+    </button>
+    <!-- Hubungi WA (WhatsApp Icon) -->
+    <a :href="'https://wa.me/' + ((app.user.profile.phone ? (app.user.profile.phone.replace(/[^0-9]/g, '').startsWith('0') ? '62' + app.user.profile.phone.replace(/[^0-9]/g, '').substring(1) : app.user.profile.phone.replace(/[^0-9]/g, '')) : ''))"
+       target="_blank"
+       title="Hubungi via WA"
+       class="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-all border border-emerald-250 shadow-sm">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+    </a>
+</div>
                                             </td>
                                         </tr>
                                     </template>
@@ -514,12 +570,156 @@
                     </button>
                 </div>
             </form>
+
+<!-- Show Modal -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+         x-show="activeApplicant !== null" x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+        
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md" @click="activeApplicant = null"></div>
+
+        <div class="relative w-full max-w-4xl transform rounded-3xl bg-white p-6 md:p-8 text-left shadow-2xl transition-all border border-slate-100 my-8">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+
+            <div class="flex items-start justify-between border-b border-slate-100 pb-4 mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800 tracking-tight" x-text="activeApplicant ? activeApplicant.user.name : ''"></h3>
+                    <p class="text-xs text-slate-500 mt-1" x-text="activeApplicant ? activeApplicant.user.email : ''"></p>
+                </div>
+                <button type="button" @click="activeApplicant = null" class="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-xl transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto pr-1">
+                <div class="space-y-6">
+                    <div class="bg-slate-50/50 p-5 rounded-2xl border border-slate-100">
+                        <h4 class="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-4">Informasi Pribadi & Kontak</h4>
+                        <div class="grid grid-cols-2 gap-y-3.5 gap-x-4 text-xs">
+                            <div>
+                                <span class="text-slate-400 block mb-0.5">Jenis Kelamin</span>
+                                <strong class="text-slate-700 font-bold" x-text="activeApplicant ? (activeApplicant.user.profile.gender === 'male' ? 'Laki-laki' : 'Perempuan') : '-'"></strong>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 block mb-0.5">Usia</span>
+                                <strong class="text-slate-700 font-bold" x-text="activeApplicant ? (new Date().getFullYear() - new Date(activeApplicant.user.profile.birth_date).getFullYear()) + ' Tahun' : '-'"></strong>
+                            </div>
+                            <div class="col-span-2 border-t border-slate-100 pt-3">
+                                <span class="text-slate-400 block mb-0.5">Nomor Telepon</span>
+                                <strong class="text-slate-700 font-bold text-sm" x-text="activeApplicant ? activeApplicant.user.profile.phone : '-'"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-indigo-50/30 p-5 rounded-2xl border border-indigo-50/50">
+                        <h4 class="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest mb-4">Pendidikan & Pengalaman</h4>
+                        <div class="space-y-4 text-xs">
+                            <div>
+                                <span class="text-slate-400 block mb-0.5">Pendidikan Terakhir</span>
+                                <strong class="text-slate-700 font-bold text-sm" x-text="activeApplicant ? activeApplicant.user.profile.education_level : '-'"></strong>
+                            </div>
+                            <div class="border-t border-indigo-50 pt-3">
+                                <span class="text-slate-400 block mb-0.5">Jurusan / Bidang Studi</span>
+                                <strong class="text-slate-700 font-bold" x-text="activeApplicant ? activeApplicant.user.profile.major : '-'"></strong>
+                            </div>
+                            <div class="border-t border-indigo-50 pt-3">
+                                <span class="text-slate-400 block mb-0.5">Pengalaman Kerja</span>
+                                <strong class="text-indigo-700 font-bold" x-text="activeApplicant ? activeApplicant.user.profile.experience_years + ' Tahun' : '-'"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 border-t border-slate-100 pt-6 flex justify-end gap-3">
+                <button type="button" @click="activeApplicant = null" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Tutup</button>
+            </div>
         </div>
     </div>
 
+    <!-- Approve Modal -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         x-show="activeApprove !== null" x-cloak
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="display: none;">
+        
+        <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-md" @click="activeApprove = null"></div>
+
+        <div class="relative w-full max-w-lg transform rounded-3xl bg-white p-6 md:p-8 text-left shadow-2xl transition-all border border-slate-100">
+            <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-indigo-500 to-emerald-500"></div>
+
+            <div class="flex items-start justify-between border-b border-slate-100 pb-4 mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800 tracking-tight">Approve & Pilih Mitra</h3>
+                    <p class="text-xs text-slate-500 mt-1">Anda akan menyetujui <strong x-text="activeApprove ? activeApprove.user.name : ''"></strong>.</p>
+                </div>
+                <button type="button" @click="activeApprove = null" class="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-50 rounded-xl transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form :action="activeApprove ? '/hrd/applications/' + activeApprove.id + '/direct-approve' : ''" method="POST"
+                  x-data="{ 
+                      mitraSelection: '',
+                      isCustom() {
+                          if(!this.mitraSelection) return false;
+                          @foreach($mitras as $mitra)
+                              if(this.mitraSelection === '{{ addslashes($mitra->name) }}') return false;
+                          @endforeach
+                          return true;
+                      }
+                  }">
+                @csrf
+                <div class="mb-6">
+                    <label class="text-xs font-bold text-slate-600 block mb-2">Penempatan Mitra (Klien)</label>
+                    <select x-show="mitraSelection !== 'custom'" 
+                            @change="if($event.target.value === 'custom') { mitraSelection = 'custom'; setTimeout(() => $refs.approveCustomInput.focus(), 50); }"
+                            :name="mitraSelection !== 'custom' ? 'mitra_input' : ''"
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500 text-sm transition-all bg-white" required>
+                        <option value="">-- Pilih Mitra --</option>
+                        @foreach($mitras as $mitra)
+                            <option value="{{ $mitra->name }}">{{ $mitra->name }}</option>
+                        @endforeach
+                        <option value="custom" class="font-bold text-indigo-600">+ Ketik Custom Baru...</option>
+                    </select>
+                    
+                    <div x-show="mitraSelection === 'custom'" class="relative mt-2" x-cloak>
+                        <input type="text" x-ref="approveCustomInput" 
+                               :name="mitraSelection === 'custom' ? 'mitra_input' : ''" 
+                               placeholder="Ketik nama mitra baru..."
+                               class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 focus:outline-none focus:border-indigo-500 text-sm transition-all"
+                               :required="mitraSelection === 'custom'">
+                        <button type="button" @click="mitraSelection = ''" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors" title="Batal, pilih dari daftar">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" @click="activeApprove = null" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Batal</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-colors">Setujui & Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    </div>
 
 
-    <script>
+        
+<script>
         document.addEventListener('DOMContentLoaded', function () {
             // Function to populate province & city
             function initLocationDropdowns() {
@@ -562,3 +762,7 @@
         });
     </script>
 @endsection
+
+
+
+

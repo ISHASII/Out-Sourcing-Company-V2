@@ -38,6 +38,7 @@ class HrdHiringController extends Controller
         
         $rejectedApplicationsGrouped = \App\Models\JobApplication::with(['user.profile', 'posting'])
             ->where('status', 'rejected')
+            ->where('matching_score', '>=', 50)
             ->latest()
             ->get()
             ->groupBy(fn($app) => $app->posting->category ?? 'Lainnya');
@@ -47,6 +48,7 @@ class HrdHiringController extends Controller
             'educationLevels' => $this->educationLevels(),
             'allCriteria' => $allCriteria,
             'rejectedApplicationsGrouped' => $rejectedApplicationsGrouped,
+            'mitras' => \App\Models\Mitra::orderBy('name')->get(),
         ]);
     }
 
@@ -57,6 +59,19 @@ class HrdHiringController extends Controller
         $data['created_by'] = auth()->id();
         $data['is_active'] = $request->boolean('is_active', true);
         $data['salary_hidden'] = $request->boolean('salary_hidden');
+
+        $mitraInput = $request->input('mitra_input');
+        if ($mitraInput) {
+            $existingMitra = \App\Models\Mitra::where('name', $mitraInput)->first();
+            if ($existingMitra) {
+                $data['mitra_id'] = $existingMitra->id;
+                $data['custom_mitra_name'] = null;
+            } else {
+                $newMitra = \App\Models\Mitra::create(['name' => $mitraInput, 'logo_path' => '']);
+                $data['mitra_id'] = $newMitra->id;
+                $data['custom_mitra_name'] = null;
+            }
+        }
 
         $activeCriteriaData = json_decode($request->input('active_criteria_data', '[]'), true);
         $criteriaConfigs = [];
@@ -173,6 +188,7 @@ class HrdHiringController extends Controller
         $allApplications = collect();
         $priorityApplications = collect();
         $nonPriorityApplications = collect();
+        $lolosSeleksi1Applications = collect();
         $interviewPassedApplications = collect();
         $rejectedApplications = collect();
         $spkDetailsMap = [];
@@ -181,7 +197,7 @@ class HrdHiringController extends Controller
             $priorityApplications = $jobPosting->applications()
                 ->with(['user.profile'])
                 ->where('is_priority', true)
-                ->where('status', '!=', 'rejected')
+                ->whereIn('status', ['pending', 'spk_evaluated'])
                 ->where(function($q) {
                     $q->whereNull('interview_status')->orWhere('interview_status', '!=', 'valid');
                 })
@@ -194,7 +210,7 @@ class HrdHiringController extends Controller
             $nonPriorityApplications = $jobPosting->applications()
                 ->with(['user.profile'])
                 ->where('is_priority', false)
-                ->where('status', '!=', 'rejected')
+                ->whereIn('status', ['pending', 'spk_evaluated'])
                 ->where(function($q) {
                     $q->whereNull('interview_status')->orWhere('interview_status', '!=', 'valid');
                 })
@@ -214,6 +230,12 @@ class HrdHiringController extends Controller
                 $spkDetailsMap[$application->id] = $application->spk_details ?: $jobPosting->calculateSpkScoreDetailed($application);
             }
 
+            $lolosSeleksi1Applications = $jobPosting->applications()
+                ->with(['user.profile'])
+                ->where('status', 'lolos_seleksi_1')
+                ->latest()
+                ->get();
+
             $interviewPassedApplications = $jobPosting->applications()
                 ->with(['user.profile'])
                 ->where('status', 'accepted')
@@ -223,7 +245,7 @@ class HrdHiringController extends Controller
         } else {
             $allApplications = $jobPosting->applications()
                 ->with(['user.profile'])
-                ->where('status', '!=', 'rejected')
+                ->whereIn('status', ['pending', 'spk_evaluated'])
                 ->latest()
                 ->get();
 
@@ -239,6 +261,7 @@ class HrdHiringController extends Controller
             'allApplications' => $allApplications,
             'priorityApplications' => $priorityApplications,
             'nonPriorityApplications' => $nonPriorityApplications,
+            'lolosSeleksi1Applications' => $lolosSeleksi1Applications,
             'interviewPassedApplications' => $interviewPassedApplications,
             'rejectedApplications' => $rejectedApplications,
             'spkDetailsMap' => $spkDetailsMap,
@@ -429,6 +452,7 @@ class HrdHiringController extends Controller
             'title' => ['required', 'string', 'max:120'],
             'category' => ['required', 'string', 'max:60'],
             'description' => ['nullable', 'string', 'max:2000'],
+            'mitra_input' => ['nullable', 'string', 'max:255'],
             'location_city' => ['nullable', 'string', 'max:120'],
             'shift_type' => ['nullable', 'in:shift,non_shift,none'],
             'salary_min' => ['nullable', 'integer', 'min:0'],
@@ -582,6 +606,30 @@ class HrdHiringController extends Controller
             'educations' => $educations,
         ]);
     }
+    public function markLolosSeleksi1(\App\Models\JobApplication $jobApplication)
+    {
+        $jobApplication->update([
+            'status' => 'lolos_seleksi_1'
+        ]);
+
+        \App\Models\Notification::create([
+            'user_id' => $jobApplication->user_id,
+            'title' => 'Lolos Wawancara Tahap 1 🎉',
+            'message' => 'Selamat! Anda dinyatakan lolos Wawancara Tahap 1 untuk posisi "' . $jobApplication->posting->title . '". Silakan tunggu persetujuan akhir.',
+            'is_read' => false,
+        ]);
+
+        // Kirim email
+        dispatch(function () use ($jobApplication) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($jobApplication->user->email)->send(new \App\Mail\ApplicationSeleksi1Mail($jobApplication));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to send seleksi 1 email: ' . $e->getMessage());
+            }
+        })->afterResponse();
+
+        return back()->with('success', 'Pelamar "' . $jobApplication->user->name . '" berhasil ditandai LOLOS SELEKSI 1.');
+    }
 
     public function acceptApplication(\App\Models\JobApplication $jobApplication)
     {
@@ -606,7 +654,7 @@ class HrdHiringController extends Controller
             }
         })->afterResponse();
 
-        return back()->with('success', 'Pelamar "' . $jobApplication->user->name . '" berhasil DITERIMA dan dipindahkan ke Kandidat Lolos Wawancara.');
+        return back()->with('success', 'Pelamar "' . $jobApplication->user->name . '" berhasil DITERIMA dan dipindahkan ke Kandidat Lolos / Diterima.');
     }
 
     public function rejectApplication(\App\Models\JobApplication $jobApplication)
@@ -631,13 +679,30 @@ class HrdHiringController extends Controller
 
     public function markInvalid(\App\Models\JobApplication $jobApplication)
     {
-        $jobApplication->update(['interview_status' => 'invalid']);
-        return back()->with('success', 'Wawancara pelamar "' . $jobApplication->user->name . '" dinyatakan TIDAK VALID (Gagal).');
+        $jobApplication->update([
+            'interview_status' => 'invalid',
+            'status' => 'rejected'
+        ]);
+
+        \App\Models\Notification::create([
+            'user_id' => $jobApplication->user_id,
+            'title' => 'Wawancara Tidak Lolos ✉️',
+            'message' => 'Mohon maaf, berdasarkan hasil wawancara, Anda belum dapat kami terima untuk posisi "' . $jobApplication->posting->title . '".',
+            'is_read' => false,
+        ]);
+
+        return back()->with('success', 'Wawancara pelamar "' . $jobApplication->user->name . '" dinyatakan TIDAK SESUAI, dan pelamar dipindahkan ke daftar Ditolak.');
     }
 
     public function sendReportToPimpinan(JobPosting $jobPosting)
     {
-        $allApplications = $jobPosting->applications()->with(['user.profile'])->orderByDesc('matching_score')->get();
+        $allApplications = $jobPosting->applications()->with(['user.profile'])->orderByDesc('matching_score')->get()->filter(function ($app) use ($jobPosting) {
+            // Exclude applicants who were recommended & accepted to a DIFFERENT mitra
+            if ($app->status === 'accepted' && $app->mitra_id !== null && $app->mitra_id !== $jobPosting->mitra_id) {
+                return false;
+            }
+            return true;
+        })->values();
         $accepted = $allApplications->where('status', 'accepted');
         $rejected = $allApplications->where('status', 'rejected');
         $priority = $allApplications->where('is_priority', true);
@@ -1211,4 +1276,59 @@ class HrdHiringController extends Controller
             'calculatedScore' => $calculatedScore,
         ]);
     }
+
+    public function directApprove(\Illuminate\Http\Request $request, \App\Models\JobApplication $jobApplication)
+    {
+        $request->validate([
+            'mitra_input' => 'required|string|max:255',
+        ]);
+
+        $mitraInput = trim($request->mitra_input);
+        
+        // Find or create Mitra
+        $mitra = \App\Models\Mitra::where('name', $mitraInput)->first();
+        if (!$mitra) {
+            $mitra = \App\Models\Mitra::create(['name' => $mitraInput]);
+        }
+
+        $jobApplication->update([
+            'mitra_id' => $mitra->id,
+            'status' => 'accepted',
+            'interview_status' => 'valid'
+        ]);
+
+        return back()->with('success', 'Pelamar berhasil disetujui langsung dengan Mitra penempatan: ' . $mitra->name);
+    }
+
+    public function downloadReportPdf(\App\Models\JobPosting $jobPosting)
+    {
+        $allApplications = $jobPosting->applications()->with(['user.profile'])->orderByDesc('matching_score')->get()->filter(function ($app) use ($jobPosting) {
+            if ($app->status === 'accepted' && $app->mitra_id !== null && $app->mitra_id !== $jobPosting->mitra_id) {
+                return false;
+            }
+            return true;
+        })->values();
+        $accepted = $allApplications->where('status', 'accepted');
+        $rejected = $allApplications->where('status', 'rejected');
+        $priority = $allApplications->where('is_priority', true);
+        $nonPriority = $allApplications->where('is_priority', false);
+
+        $data = [
+            'posting' => $jobPosting,
+            'allApplications' => $allApplications,
+            'accepted' => $accepted,
+            'rejected' => $rejected,
+            'priority' => $priority,
+            'nonPriority' => $nonPriority,
+            'adminName' => auth()->user()->name,
+        ];
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('hrd.hiring.report_pdf', $data)
+            ->setPaper('a4', 'landscape');
+        
+        $filename = 'Laporan_SPK_' . \Illuminate\Support\Str::slug($jobPosting->title) . '_' . time() . '.pdf';
+        
+        return $pdf->download($filename);
+    }
 }
+

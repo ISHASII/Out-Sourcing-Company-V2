@@ -19,40 +19,46 @@ class CriteriaController extends Controller
     }
 
     /**
-     * Display all criteria directly as a table.
+     * Display all categories for drill-down.
      */
     public function index(Request $request)
     {
-        $query = Criterion::query();
+        $categories = \App\Models\JobCategory::where('is_active', true)->get();
+        
+        // Count criteria per category
+        foreach ($categories as $cat) {
+            $cat->criteria_count = \App\Models\Criterion::where('category', $cat->name)->count();
+        }
 
-        if ($request->has('search') && !empty($request->input('search'))) {
-            $search = $request->input('search');
+        return view('hrd.kriteria.index', compact('categories'));
+    }
+
+    /**
+     * Show all criteria in a specific category.
+     */
+    public function show($category)
+    {
+        $categoryModel = \App\Models\JobCategory::where('name', $category)->firstOrFail();
+        $query = \App\Models\Criterion::where('category', $category);
+
+        if (request()->has('search') && !empty(request()->input('search'))) {
+            $search = request()->input('search');
             $query->where(function($q) use ($search) {
                 $q->where('label', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
                   ->orWhere('key', 'like', "%{$search}%");
             });
         }
 
-        $criteria = $query->orderBy('category')->orderBy('sort_order')->paginate(10)->withQueryString();
-        $categories = \App\Models\JobCategory::where('is_active', true)->get();
-        $masterTemplates = $this->masterTemplates();
+        $criteria = $query->orderBy('sort_order')->paginate(10)->withQueryString();
 
-        return view('hrd.kriteria.index', compact('criteria', 'categories', 'masterTemplates'));
-    }
-
-    /**
-     * Show all criteria in a specific category (Redirects to index).
-     */
-    public function show($category)
-    {
-        return redirect()->route('hrd.kriteria.index');
+        return view('hrd.kriteria.show', compact('categoryModel', 'criteria'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'label' => ['required', 'string', 'max:120'],
+            'category' => ['required', 'string'],
             'type' => ['required', 'in:file,text,checkbox,number'],
             'default_status' => ['required', 'in:core,secondary'],
             'default_weight' => ['required', 'integer', 'min:0', 'max:100'],
@@ -60,12 +66,12 @@ class CriteriaController extends Controller
 
         $label = $request->input('label');
         $key = \Illuminate\Support\Str::slug($label, '_');
-        $category = 'General';
+        $category = $request->input('category');
         
-        // Check for duplicates in General category
-        $exists = Criterion::where('category', 'General')->where('key', $key)->exists();
+        // Check for duplicates in the specific category
+        $exists = Criterion::where('category', $category)->where('key', $key)->exists();
         if ($exists) {
-            return back()->withErrors(['label' => 'Kriteria dengan nama ini sudah ada.']);
+            return back()->withErrors(['label' => 'Kriteria dengan nama ini sudah ada di kategori ini.']);
         }
 
         Criterion::create([
